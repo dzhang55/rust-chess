@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Chat'98</title>
+  <style>
+    #history {
+      width: 600px;
+      height: 400px;
+      border: 1px solid gray;
+      overflow-y: scroll;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+  <script>
+    function load() {
+      "use strict";
+
+      var history = $("#history");
+      var formuser = $("#user");
+      var formserver = $("#server");
+      var formtext = $("#text");
+      var connectbtn = $("#connectbtn");
+      var disconnectbtn = $("#disconnectbtn");
+      var sendbtn = $("#sendbtn");
+      connectbtn.prop("disabled", false);
+      disconnectbtn.prop("disabled", true);
+      sendbtn.prop("disabled", true);
+
+      function err(value) {
+        var elem = $("<div>");
+        var em = $("<em>");
+        em.text(value);
+        elem.append(em);
+        history.append(elem);
+        history.scrollTop(history.prop("scrollHeight"));
+      }
+
+      function write(json) {
+        try {
+          var msg = JSON.parse(json);
+          var elem = $("<div>");
+
+          if (msg.variant == "Msg") {
+            var user = $("<strong>");
+            user.text(msg.fields[0] + ": ");
+            var text = $("<span>");
+            text.text(msg.fields[1]);
+            elem.append(user);
+            elem.append(text);
+          } else if (msg.variant == "Connect") {
+            var user = $("<strong>");
+            user.text(msg.fields[0]);
+            elem.append(user);
+            elem.append(" connected.");
+          } else if (msg.variant == "Disconnect") {
+            var user = $("<strong>");
+            user.text(msg.fields[0]);
+            elem.append(user);
+            elem.append(" disconnected.");
+          } else {
+            err(msg);
+            return;
+          }
+
+          history.append(elem);
+          history.scrollTop(history.prop("scrollHeight"));
+        } catch(e) {
+          err(json);
+        }
+      }
+
+      var socket;
+      var sockprom;
+      $("#connect").submit(function() {
+        if (socket) {
+          socket.close();
+          socket = undefined;
+        }
+
+        socket = new WebSocket("ws://" + formserver.val());
+        sockprom = new Promise(function(resolve, reject) {
+          socket.onopen = resolve;
+          socket.onerror = reject;
+        }).catch(function(e) {
+          err("failed to connect.");
+          socket.close();
+          socket = undefined;
+          sendbtn.prop("disabled", true);
+          connectbtn.prop("disabled", false);
+          disconnectbtn.prop("disabled", true);
+        });
+
+        socket.onmessage = function(ev) {
+          write(ev.data);
+          console.log("recv: " + ev.data);
+        };
+
+        var usr = formuser.val();
+        sockprom = sockprom.then(function() {
+          if (!socket) { return; }
+
+          sendbtn.prop("disabled", false);
+          connectbtn.prop("disabled", true);
+          disconnectbtn.prop("disabled", false);
+          err("Connected.");
+        });
+      });
+
+      disconnectbtn.click(function() {
+        if (!socket) { return; }
+
+        socket.close();
+        socket = undefined;
+        sendbtn.prop("disabled", true);
+        connectbtn.prop("disabled", false);
+        disconnectbtn.prop("disabled", true);
+        err("Disconnected.");
+      });
+
+      $("#send").submit(function() {
+        if (!socket) { return; }
+
+        var usr = formuser.val();
+        var txt = formtext.val();
+        formtext.val("");
+        sockprom = sockprom.then(function() {
+          var o = { variant: "Msg", fields: [usr, txt] };
+          var s = JSON.stringify(o);
+          socket.send(s);
+          console.log("send: " + s);
+        });
+      });
+    }
+  </script>
+</head>
+<body onload="load();">
+  <form id="connect" action="javascript:void(0);">
+    ws://<input type="text" id="server" value="localhost:1981" style="width:300px">
+    <input type="submit" id="connectbtn" value="Connect">
+    <input type="button" id="disconnectbtn" value="Disconnect" disabled>
+  </form>
+
+  <form id="send" action="javascript:void(0);" autocomplete="off">
+    <div id="history" for="text"></div>
+
+    <input type="text" id="user" value="user" placeholder="user" style="width:80px">:
+    <input type="text" name="text" id="text" style="width:380px">
+    <input type="submit" id="sendbtn" value="Send" disabled>
+  </form>
+</body>
+</html>
