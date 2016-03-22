@@ -33,6 +33,9 @@ fn relay_thread(/* TODO */) {
 /// Each client thread waits for input (or disconnects) from its respective clients
 /// and relays the appropriate messages via the relay MPSC channel.
 ///
+/// The messages received-from and sent-to the client should be JSON objects with the same
+/// form as rustc_serialize's serialization of the `ChatAction` type.
+///
 /// * If the client connects, a `ChatAction::Connect` will be relayed with their IP address.
 ///
 /// * If the client disconnects, a `ChatAction::Disconnect` will be relayed with their IP address.
