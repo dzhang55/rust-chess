@@ -1,4 +1,9 @@
 use std::thread;
+use std::sync::mpsc;
+use std::collections::HashMap;
+use websocket::{DataFrame, Client, Server, Sender, Receiver, Message, WebSocketStream};
+use websocket::message::Type;
+use websocket::header::WebSocketProtocol;
 
 const WS_ADDR: &'static str = "0.0.0.0:1981";
 
@@ -21,12 +26,45 @@ pub fn start() {
 /// Create the relay MPSC (multi-producer/single-consumer) channel, spawn the
 /// relay thread, then listen for WebSocket clients and spawn their threads.
 fn listen() {
+	let server = Server::bind(WS_ADDR).unwrap();
+	let (tx, rx) = mpsc::channel();
+	thread::spawn(|| relay_thread(rx));
+	let mut clients = HashMap::<&str, Sender>::new();
+
+	for connection in server {
+		let tx = tx.clone();
+		let request = connection.unwrap().read_request().unwrap(); // Get the request
+		let headers = request.headers.clone(); // Keep the headers so we can check them
+
+		request.validate().unwrap(); // Validate the request
+
+		let mut response = request.accept(); // Form a response
+
+		let mut client = response.send().unwrap(); // Send the response
+
+		let ip = client.get_mut_sender()
+				.get_mut()
+				.peer_addr()
+				.unwrap();
+
+		let (mut sender, mut receiver) = client.split();
+		for message in receiver.incoming_messages() {
+				let message: Message = message.unwrap();
+		}
+		//thread::spawn(|| client_thread(receiver));
+    // Spawn a client_thread.
+	}
     // TODO
 }
 
 /// The relay thread handles all `ChatAction`s received on its MPSC channel
 /// by sending them out to all of the currently connected clients.
-fn relay_thread(/* TODO */) {
+fn relay_thread(receiver: mpsc::Receiver<ChatAction>) {
+	for action in receiver {
+		let message = try!(json::encode(action));
+
+    // Send message to all clients.
+	}
     // TODO
 }
 
@@ -42,6 +80,10 @@ fn relay_thread(/* TODO */) {
 ///
 /// * If the client sends any other message (i.e. `ChatAction::Msg`), it will be relayed verbatim.
 ///   (But you should still deserialize and reserialize the `ChatAction` to make sure it is valid!)
-fn client_thread(/* TODO */) {
+fn client_thread(tx: mpsc::Sender<ChatAction>, receiver: Receiver<WebSocketStream>) {
+	for message in receiver.incoming_messages() {
+		let action = try!(json::decode(message));
+		tx.send(json::encode(action));
+	}
     // TODO
 }
