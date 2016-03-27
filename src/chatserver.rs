@@ -64,15 +64,8 @@ fn listen() {
 		let ref mut clients_vec = *clients.lock().unwrap();
 		clients_vec.push(sender);
 
-		// Send connect message to MPSC channel
-		let ca = ChatAction::Connect{addr: ip_string.clone()};
-		let encoded_ca = json::encode(&ca).unwrap();
-		tx.send(encoded_ca).unwrap();
-
 		thread::spawn(move || client_thread(ip_string.clone(), tx, receiver));
-    // Spawn a client_thread.
 	}
-    // TODO
 }
 
 /// The relay thread handles all `ChatAction`s received on its MPSC channel
@@ -103,6 +96,12 @@ fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
 ///   (But you should still deserialize and reserialize the `ChatAction` to make sure it is valid!)
 fn client_thread(ip: String, mpsc_sender: mpsc::Sender<String>,
                  mut client_receiver: receiver::Receiver<WebSocketStream>) {
+
+	// Send connect message to MPSC channel
+	let ca = ChatAction::Connect{addr: ip.clone()};
+	let encoded_ca = json::encode(&ca).unwrap();
+	mpsc_sender.send(encoded_ca).unwrap();
+
 	for message in client_receiver.incoming_messages() {
 		let message: Message = message.unwrap();
 		match message.opcode {
