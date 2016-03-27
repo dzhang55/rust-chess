@@ -1,9 +1,11 @@
+use rustc_serialize::json;
+use std::str;
 use std::thread;
-use std::sync::mpsc;
-use std::collections::HashMap;
-use websocket::{DataFrame, Client, Server, Sender, Receiver, Message, WebSocketStream};
+use std::sync::{Arc, Mutex, mpsc};
+use websocket::{Receiver, Sender, Server, Message, WebSocketStream};
+use websocket::sender;
+use websocket::receiver;
 use websocket::message::Type;
-use websocket::header::WebSocketProtocol;
 
 const WS_ADDR: &'static str = "0.0.0.0:1981";
 
@@ -18,6 +20,12 @@ enum ChatAction {
     Msg { user: String, text: String },
 }
 
+#[derive(RustcDecodable, RustcEncodable)]
+struct Payload {
+	variant: String,
+	fields: Vec<String>
+}
+
 /// Spawn a WebSocket listener thread.
 pub fn start() {
     thread::spawn(listen);
@@ -28,17 +36,17 @@ pub fn start() {
 fn listen() {
 	let server = Server::bind(WS_ADDR).unwrap();
 	let (tx, rx) = mpsc::channel();
-	thread::spawn(|| relay_thread(rx));
-	let mut clients = HashMap::<&str, Sender>::new();
+	let clients = Arc::new(Mutex::new(Vec::new()));
+	let clients_clone = clients.clone();
+	thread::spawn(move || relay_thread(clients_clone, rx));
 
 	for connection in server {
 		let tx = tx.clone();
 		let request = connection.unwrap().read_request().unwrap(); // Get the request
-		let headers = request.headers.clone(); // Keep the headers so we can check them
 
 		request.validate().unwrap(); // Validate the request
 
-		let mut response = request.accept(); // Form a response
+		let response = request.accept(); // Form a response
 
 		let mut client = response.send().unwrap(); // Send the response
 
@@ -47,11 +55,21 @@ fn listen() {
 				.peer_addr()
 				.unwrap();
 
-		let (mut sender, mut receiver) = client.split();
-		for message in receiver.incoming_messages() {
-				let message: Message = message.unwrap();
-		}
-		//thread::spawn(|| client_thread(receiver));
+		let ip_string = format!("{}", ip);
+
+		let (mut sender, receiver) = client.split();
+		sender.send_message(&Message::text(String::from("Welcome!"))).unwrap();
+
+		// add new client sender to list of clients
+		let ref mut clients_vec = *clients.lock().unwrap();
+		clients_vec.push(sender);
+
+		// Send connect message to MPSC channel
+		let ca = ChatAction::Connect{addr: ip_string.clone()};
+		let encoded_ca = json::encode(&ca).unwrap();
+		tx.send(encoded_ca).unwrap();
+
+		thread::spawn(move || client_thread(ip_string.clone(), tx, receiver));
     // Spawn a client_thread.
 	}
     // TODO
@@ -59,13 +77,16 @@ fn listen() {
 
 /// The relay thread handles all `ChatAction`s received on its MPSC channel
 /// by sending them out to all of the currently connected clients.
-fn relay_thread(receiver: mpsc::Receiver<ChatAction>) {
-	for action in receiver {
-		let message = try!(json::encode(action));
-
-    // Send message to all clients.
+fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
+			    mpsc_receiver: mpsc::Receiver<String>) {
+	for action in mpsc_receiver {
+		let mut clients_vector = clients.lock().unwrap();
+		let message = Message::text(action);
+		// relay message to all of the clients
+		for client_sender in &mut *clients_vector {
+			client_sender.send_message(&message).unwrap();
+		}
 	}
-    // TODO
 }
 
 /// Each client thread waits for input (or disconnects) from its respective clients
@@ -80,10 +101,27 @@ fn relay_thread(receiver: mpsc::Receiver<ChatAction>) {
 ///
 /// * If the client sends any other message (i.e. `ChatAction::Msg`), it will be relayed verbatim.
 ///   (But you should still deserialize and reserialize the `ChatAction` to make sure it is valid!)
-fn client_thread(tx: mpsc::Sender<ChatAction>, receiver: Receiver<WebSocketStream>) {
-	for message in receiver.incoming_messages() {
-		let action = try!(json::decode(message));
-		tx.send(json::encode(action));
+fn client_thread(ip: String, mpsc_sender: mpsc::Sender<String>,
+                 mut client_receiver: receiver::Receiver<WebSocketStream>) {
+	for message in client_receiver.incoming_messages() {
+		let message: Message = message.unwrap();
+		match message.opcode {
+			// disconnect
+		 	Type::Close => {
+				let ca = ChatAction::Disconnect{addr: ip.clone()};
+		 		let encoded_ca = json::encode(&ca).unwrap();
+		 		mpsc_sender.send(encoded_ca).unwrap();
+		 	},
+		 	_ => {
+		 		// json object with username and message
+		 		let payload: Payload = json::decode(str::from_utf8(&message.payload).unwrap()).unwrap();
+		 		let ca = ChatAction::Msg{
+		 			user: payload.fields[0].clone(),
+		 			text: payload.fields[1].clone()
+		 		};
+		 		let encoded_ca = json::encode(&ca).unwrap();
+		 		mpsc_sender.send(encoded_ca).unwrap();
+		 	}
+		}
 	}
-    // TODO
 }
