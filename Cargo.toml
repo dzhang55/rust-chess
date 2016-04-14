@@ -1,7 +1,7 @@
 [package]
-name = "webchat"
+name = "chess"
 version = "0.1.0"
-authors = ["CIS 198 <cis198@cis.upenn.edu>"]
+authors = ["Daniel Zhang <danielzh@sas.upenn.edu>"]
 
 [dependencies]
 hyper = "0.7.2"
