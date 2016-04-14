@@ -3,9 +3,10 @@ extern crate rustc_serialize;
 extern crate websocket;
 
 mod webpage;
-mod chatserver;
+mod chess_server;
+mod board;
 
 fn main() {
-    chatserver::start();
+    chess_server::start();
     webpage::serve();
 }
