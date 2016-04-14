@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["main",""]],"mod":[["board","A module for the game logic of Chess. Stores the Board object and contains methods for finding potential moves, check/checkmate, etc."],["chess_server","A module for the server logic of Chess. Handles all WebSocket clients using a relay MPSC channel. Sends information about game logic through Actions."],["webpage",""]]});
