@@ -46,7 +46,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-235' class='srclink' href='../../src/chess/board.rs.html#1-45' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-235' class='srclink' href='../../src/chess/board.rs.html#1-112' title='goto source code'>[src]</a></span></h1>
 <div class='docblock'><p>A module for the game logic of Chess. Stores the Board object and contains
 methods for finding potential moves, check/checkmate, etc.</p>
 </div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
@@ -56,7 +56,7 @@ methods for finding potential moves, check/checkmate, etc.</p>
                         <td><a class='struct' href='struct.Board.html'
                                title='chess::board::Board'>Board</a></td>
                         <td class='docblock short'>
-                             <p>Represents all the pieces in the board.</p>
+                             <p>Represents the board state.</p>
 
                         </td>
                     </tr>
@@ -69,11 +69,29 @@ methods for finding potential moves, check/checkmate, etc.</p>
 
                         </td>
                     </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.Piece.html'
+                               title='chess::board::Piece'>Piece</a></td>
+                        <td class='docblock short'>
+                             <p>Represents a single chess piece.</p>
+
+                        </td>
+                    </tr>
                 </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
 <table>
                     <tr class=' module-item'>
-                        <td><a class='enum' href='enum.Piece.html'
-                               title='chess::board::Piece'>Piece</a></td>
+                        <td><a class='enum' href='enum.Color.html'
+                               title='chess::board::Color'>Color</a></td>
+                        <td class='docblock short'>
+                             <p>Represents the color of a piece.</p>
+
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='enum' href='enum.PieceType.html'
+                               title='chess::board::PieceType'>PieceType</a></td>
                         <td class='docblock short'>
                              <p>Represents the possible types of pieces in a given cell.</p>
 

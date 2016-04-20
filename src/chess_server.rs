@@ -77,6 +77,8 @@ fn listen() {
 
 /// The relay thread handles all `Action`s received on its MPSC channel
 /// by sending them out to all of the currently connected clients.
+/// Also emits the potential moves to the client making a selection, and
+/// emits any change in board state to all clients
 fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
 			    mpsc_receiver: mpsc::Receiver<String>) {
 	for action in mpsc_receiver {

@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Piece","Represents the possible types of pieces in a given cell."]],"struct":[["Board","Represents all the pieces in the board."],["Cell","Represents the index of a single cell in the board."]]});
+initSidebarItems({"enum":[["Color","Represents the color of a piece."],["PieceType","Represents the possible types of pieces in a given cell."]],"struct":[["Board","Represents the board state."],["Cell","Represents the index of a single cell in the board."],["Piece","Represents a single chess piece."]]});
