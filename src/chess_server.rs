@@ -10,7 +10,7 @@ use websocket::sender;
 use websocket::receiver;
 use websocket::message::Type;
 
-use super::board::Cell;
+use super::board::{Board, Cell};
 
 const WS_ADDR: &'static str = "0.0.0.0:1981";
 
@@ -81,6 +81,7 @@ fn listen() {
 /// emits any change in board state to all clients
 fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
 			    mpsc_receiver: mpsc::Receiver<String>) {
+	let mut board = Board::new();
 	for action in mpsc_receiver {
 		let mut clients_vector = clients.lock().unwrap();
 		let message = Message::text(action);

@@ -176,6 +176,7 @@
 <span id="133">133</span>
 <span id="134">134</span>
 <span id="135">135</span>
+<span id="136">136</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A module for the server logic of Chess. Handles all WebSocket clients using</span>
 <span class='doccomment'>//! a relay MPSC channel. Sends information about game logic through Actions.</span>
@@ -189,7 +190,7 @@
 <span class='kw'>use</span> <span class='ident'>websocket</span>::<span class='ident'>receiver</span>;
 <span class='kw'>use</span> <span class='ident'>websocket</span>::<span class='ident'>message</span>::<span class='ident'>Type</span>;
 
-<span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>board</span>::<span class='ident'>Cell</span>;
+<span class='kw'>use</span> <span class='ident'>super</span>::<span class='ident'>board</span>::{<span class='ident'>Board</span>, <span class='ident'>Cell</span>};
 
 <span class='kw'>const</span> <span class='ident'>WS_ADDR</span>: <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;0.0.0.0:1981&quot;</span>;
 
@@ -260,6 +261,7 @@
 <span class='doccomment'>/// emits any change in board state to all clients</span>
 <span class='kw'>fn</span> <span class='ident'>relay_thread</span>(<span class='ident'>clients</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>sender</span>::<span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>WebSocketStream</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;&gt;</span>,
 			    <span class='ident'>mpsc_receiver</span>: <span class='ident'>mpsc</span>::<span class='ident'>Receiver</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>) {
+	<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>board</span> <span class='op'>=</span> <span class='ident'>Board</span>::<span class='ident'>new</span>();
 	<span class='kw'>for</span> <span class='ident'>action</span> <span class='kw'>in</span> <span class='ident'>mpsc_receiver</span> {
 		<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>clients_vector</span> <span class='op'>=</span> <span class='ident'>clients</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
 		<span class='kw'>let</span> <span class='ident'>message</span> <span class='op'>=</span> <span class='ident'>Message</span>::<span class='ident'>text</span>(<span class='ident'>action</span>);
