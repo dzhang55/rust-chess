@@ -53,7 +53,7 @@ impl Board {
 	}
 
 	/// Get the piece associated with a given cell index.
-	fn get_piece(&self, cell: Cell) -> &Option<Piece> {
+	fn get_piece(&self, cell: &Cell) -> &Option<Piece> {
 		&self.board[cell.row as usize][cell.row as usize]
 	}
 
@@ -62,19 +62,102 @@ impl Board {
 	}
 
 	fn is_empty(&self, cell: &Cell) -> bool {
-		!self.board[cell.row as usize][cell.col as usize].is_some()
+		!self.get_piece(cell).is_some()
 	}
 
-	/// Returns the potential moves in a given direction, stopping upon
-	/// a collision.
-	fn moves_until_collision(&self, dir: Cell, mut cell: Cell) -> Vec<Cell> {
+	fn is_enemy(&self, cell: &Cell) -> bool {
+		if let Some(ref piece) = *self.get_piece(cell) {
+			return piece.color != self.color
+		}
+		false
+	}
+
+	/// Returns the potential moves in the given directions, stopping upon a collision.
+	fn moves_until_collision(&self, dirs: Vec<(i32, i32)>, mut cell: Cell) -> Vec<Cell> {
 		let mut moves = Vec::new();
-		while self.inbounds(&cell) && self.is_empty(&cell) {
-			moves.push(cell.clone());
-			cell.row += dir.row;
-			cell.col += dir.col;
+		for dir in &dirs {
+			while self.inbounds(&cell) && self.is_empty(&cell) {
+				moves.push(cell.clone());
+				cell.row += dir.0;
+				cell.col += dir.1;
+			}
+			// Case for enemy piece collision
+			if !self.is_empty(&cell) && self.is_enemy(&cell) {
+				moves.push(cell.clone());
+			}
 		}
 		moves
+	}
+
+	/// Helper function to implement pawn logic.
+	fn pawn_moves(&self, mut cell: Cell) -> Vec<Cell> {
+		let mut moves = Vec::new();
+		if let Some(ref piece) = *self.get_piece(&cell) {
+			let mut dir = 0;
+			match piece.color {
+				Color::Black => {
+					if cell.row == 1 {
+						moves.push(Cell{row: cell.row + 2, col: cell.col});
+					}
+					dir = 1;
+				},
+				Color::White => {
+					if cell.row == 6 {
+						moves.push(Cell{row: cell.row - 2, col: cell.col});
+					}
+					dir = -1;
+					moves.push(Cell{row: cell.row - 1, col: cell.col});
+				}
+			}
+			let vertical = Cell{row: cell.row + dir, col: cell.col};
+			let diag_right = Cell{row: cell.row + dir, col: cell.col + 1};
+			let diag_left = Cell{row: cell.row + dir, col: cell.col - 1};
+			if self.is_empty(&vertical) {
+				moves.push(vertical);
+			}
+			if self.is_enemy(&diag_right) {
+				moves.push(diag_right);
+			}
+			if self.is_enemy(&diag_left) {
+				moves.push(diag_left);
+			}
+		}
+		moves
+	}
+
+	/// Helper function to implement king logic
+	fn king_moves(&self, mut cell: Cell) -> Vec<Cell> {
+		let dirs = vec![(0, 1), (1, 0), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
+		let moves = Vec::new();
+		for dir in dirs {
+			let mut new_cell = cell.clone();
+			new_cell.row = new_cell.row + dir.0;
+			new_cell.col = new_cell.col + dir.1;
+			if self.is_empty(&new_cell) || self.is_enemy(&new_cell) {
+				//moves.push(new_cell);
+			}
+			// if there is a piece that is mine then skip
+			// if check is true after move then skip
+			// otherwise put it in
+			// maybe clone the board?
+		}
+		moves
+	}
+
+	/// Helper function to check if a move would place the current player's king in danger.
+	fn self_check(&self, piece: &Piece, to: Cell) -> bool {
+		let mut new_board = self.clone();
+		new_board.move_piece(piece.clone(), to);
+		new_board.switch_color();
+		new_board.check()
+	}
+
+	/// Helper function to swap the current player.
+	fn switch_color(&mut self) {
+		match self.color {
+			Color::Black => self.color = Color::White,
+			Color::White => self.color = Color::Black
+		}
 	}
 
 	/// Calculate the potential moves for a given cell index.
@@ -83,17 +166,27 @@ impl Board {
 		if let Some(ref piece) = self.board[cell.row as usize][cell.col as usize] {
 			match piece.piece_type {
 				PieceType::Queen => {
-					moves.append(&mut self.moves_until_collision(Cell{row: 1, col: 0}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: -1, col: 0}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: 0, col: 1}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: 0, col: -1}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: 1, col: 1}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: 1, col: -1}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: -1, col: 1}, cell.clone()));
-					moves.append(&mut self.moves_until_collision(Cell{row: -1, col: -1}, cell.clone()));					
+					let dirs = vec![(0, 1), (1, 0), (-1, 0), (0, -1),
+									(1, 1), (1, -1), (-1, 1), (-1, -1)];
+					moves.append(&mut self.moves_until_collision(dirs, cell.clone()));					
+				},
+				PieceType::Bishop => {
+					let dirs = vec![(1, 1), (1, -1), (-1, 1), (-1, -1)];
+					moves.append(&mut self.moves_until_collision(dirs, cell.clone()));	
+				},
+				PieceType::Rook => {
+					let dirs = vec![(0, 1), (1, 0), (-1, 0), (0, -1)];
+					moves.append(&mut self.moves_until_collision(dirs, cell.clone()));	
+				},
+				PieceType::Pawn => {
+					moves.append(&mut self.pawn_moves(cell.clone()));
+				},
+				PieceType::King => {
+					moves.append(&mut self.king_moves(cell.clone()));
 				}
 				_ => println!("not implemented"),
 			}
+			moves.retain(|m| !self.self_check(piece, m.clone()));
 		}
 		moves
 	}
