@@ -82,7 +82,7 @@ impl Board {
 				cell.col += dir.1;
 			}
 			// Case for enemy piece collision
-			if !self.is_empty(&cell) && self.is_enemy(&cell) {
+			if self.is_enemy(&cell) {
 				moves.push(cell.clone());
 			}
 		}
@@ -90,7 +90,7 @@ impl Board {
 	}
 
 	/// Helper function to implement pawn logic.
-	fn pawn_moves(&self, mut cell: Cell) -> Vec<Cell> {
+	fn pawn_moves(&self, cell: Cell) -> Vec<Cell> {
 		let mut moves = Vec::new();
 		if let Some(ref piece) = *self.get_piece(&cell) {
 			let mut dir = 0;
@@ -125,21 +125,16 @@ impl Board {
 		moves
 	}
 
-	/// Helper function to implement king logic
-	fn king_moves(&self, mut cell: Cell) -> Vec<Cell> {
-		let dirs = vec![(0, 1), (1, 0), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
-		let moves = Vec::new();
+	/// Helper function to implement logic for pieces with set directions.
+	fn basic_moves(&self, dirs: Vec<(i32, i32)>, mut cell: Cell) -> Vec<Cell> {
+		let mut moves = Vec::new();
 		for dir in dirs {
 			let mut new_cell = cell.clone();
 			new_cell.row = new_cell.row + dir.0;
 			new_cell.col = new_cell.col + dir.1;
 			if self.is_empty(&new_cell) || self.is_enemy(&new_cell) {
-				//moves.push(new_cell);
+				moves.push(new_cell);
 			}
-			// if there is a piece that is mine then skip
-			// if check is true after move then skip
-			// otherwise put it in
-			// maybe clone the board?
 		}
 		moves
 	}
@@ -182,9 +177,16 @@ impl Board {
 					moves.append(&mut self.pawn_moves(cell.clone()));
 				},
 				PieceType::King => {
-					moves.append(&mut self.king_moves(cell.clone()));
+					let dirs = vec![(0, 1), (1, 0), (-1, 0), (0, -1),
+									(1, 1), (1, -1), (-1, 1), (-1, -1)];
+					moves.append(&mut self.basic_moves(dirs, cell.clone()));
+				},
+				PieceType::Knight => {
+					let dirs = vec![(2, 1), (1, -2), (-1, 2), (-2, -1),
+									(1, 2), (-2, 1), (2, -1), (-1, -2)];
+					moves.append(&mut self.basic_moves(dirs, cell.clone()));
+
 				}
-				_ => println!("not implemented"),
 			}
 			moves.retain(|m| !self.self_check(piece, m.clone()));
 		}
