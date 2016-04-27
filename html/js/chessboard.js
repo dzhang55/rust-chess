@@ -44,25 +44,22 @@ function load() {
 				elem.append(user);
 				elem.append(" disconnected.");
 			} else if (msg.variant == "Moves") {
-				console.log("MOVES!");
 				moves = msg.fields[0];
 				for (var i = 0; i < moves.length; i++) {
 					var square = indexToNotation(moves[i].row, moves[i].col);
-					console.log(square);
 					greySquare(square);
 				}
 			} else if (msg.variant == "Board") {
 				var state = msg.fields[0];
-				console.log(state.board);
 				setPosition(chessBoard, state.board);
 				if (state.checkmate) {
-					$("#check").html("Checkmate!");
+					$("#check").text("Checkmate!");
 				}
 				else if (state.check) {
-					$("#check").html("Check!");
+					$("#check").text("Check!");
 				}
 				else {
-					$("#check").html("");
+					$("#check").text("");
 				}
 			} else if (msg.variant == "Select") {
 			} else if (msg.variant == "Move") {
@@ -214,7 +211,6 @@ var greySquare = function(square) {
 };
 
 var setPosition = function(chessBoard, board) {
-	console.log("IM IN SETPOSITION");
 	var position = {};
 	for (var i = 0; i < board.length; i++) {
 		for (var j = 0; j < board[i].length; j++) {
@@ -256,7 +252,5 @@ var setPosition = function(chessBoard, board) {
 			position[indexToNotation(cell.row, cell.col)] = color + piece;
 		}
 	}
-	console.log("setposition");
-	console.log(position);
 	chessBoard.position(position);
 };

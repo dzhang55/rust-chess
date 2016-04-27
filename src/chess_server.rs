@@ -110,7 +110,6 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
                 let ref board = *mutex_board.lock().unwrap();
                 let mut cells = board.potential_moves(cell);
                 cells.retain(|m| !board.self_check(cell.clone(), m.clone()));
-                println!("cells: {:?}", cells);
                 new_action = Action::Moves{cells: cells};
                 let mut clients_map = clients.lock().unwrap();
                 let message = Message::text(json::encode(&new_action).unwrap());

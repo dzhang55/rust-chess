@@ -105,25 +105,25 @@ impl Board {
         Board::symmetrical_pieces(0, 0, &mut board, PieceType::Rook);
         Board::symmetrical_pieces(0, 1, &mut board, PieceType::Knight);
         Board::symmetrical_pieces(0, 2, &mut board, PieceType::Bishop);
-        board[0][4] = Some(Piece{
+        board[0][3] = Some(Piece{
             piece_type: PieceType::Queen,
+            color: Color::Black,
+            cell: Cell::new(0, 3)
+        });
+        board[7][3] = Some(Piece{
+            piece_type: PieceType::Queen,
+            color: Color::White,
+            cell: Cell::new(7, 3)
+        });
+        board[0][4] = Some(Piece{
+            piece_type: PieceType::King,
             color: Color::Black,
             cell: Cell::new(0, 4)
         });
         board[7][4] = Some(Piece{
-            piece_type: PieceType::Queen,
+            piece_type: PieceType::King,
             color: Color::White,
             cell: Cell::new(7, 4)
-        });
-        board[0][5] = Some(Piece{
-            piece_type: PieceType::King,
-            color: Color::Black,
-            cell: Cell::new(0, 5)
-        });
-        board[7][5] = Some(Piece{
-            piece_type: PieceType::King,
-            color: Color::White,
-            cell: Cell::new(7, 5)
         });
 
         Board {
@@ -138,12 +138,12 @@ impl Board {
 
     /// Get the piece associated with a given cell index.
     fn get_piece(&self, cell: &Cell) -> &Option<Piece> {
-        &self.board[cell.row as usize][cell.row as usize]
+        &self.board[cell.row as usize][cell.col as usize]
     }
 
     /// Helper function to check if a proposed cell is in the bounds of the board.
     fn inbounds(&self, cell: &Cell) -> bool {
-        cell.row < 8 && cell.row >= 0 && cell.col < 8 && cell.row >= 0
+        cell.row < 8 && cell.row >= 0 && cell.col < 8 && cell.col >= 0
     }
 
     /// Helper function to check if a cell has a piece.
@@ -166,14 +166,16 @@ impl Board {
         let mut moves = Vec::new();
         for dir in &dirs {
             let mut new_cell = cell.clone();
+            new_cell.row += dir.0;
+            new_cell.col += dir.1;
             while self.inbounds(&new_cell) && self.is_empty(&new_cell) {
-                moves.push(cell.clone());
+                moves.push(new_cell.clone());
                 new_cell.row += dir.0;
                 new_cell.col += dir.1;
             }
             // Case for enemy piece collision
-            if self.is_enemy(&cell, &new_cell) {
-                moves.push(cell.clone());
+            if self.inbounds(&new_cell) && self.is_enemy(&cell, &new_cell) {
+                moves.push(new_cell.clone());
             }
         }
         moves
@@ -207,14 +209,13 @@ impl Board {
             let vertical = Cell{row: cell.row + dir, col: cell.col};
             let diag_right = Cell{row: cell.row + dir, col: cell.col + 1};
             let diag_left = Cell{row: cell.row + dir, col: cell.col - 1};
-            if self.is_empty(&vertical) {
-                println!("vertical is empty");
+            if self.inbounds(&vertical) && self.is_empty(&vertical) {
                 moves.push(vertical);
             }
-            if self.is_enemy(&cell, &diag_right) {
+            if self.inbounds(&diag_right) && self.is_enemy(&cell, &diag_right) {
                 moves.push(diag_right);
             }
-            if self.is_enemy(&cell, &diag_left) {
+            if self.inbounds(&diag_left) && self.is_enemy(&cell, &diag_left) {
                 moves.push(diag_left);
             }
         }
@@ -340,17 +341,16 @@ impl Board {
                 }
             }
         }
+        println!("CHECKMATE");
         true
     }
 
     /// Helper function that moves a piece to a target cell
     pub fn move_piece(&mut self, from: Cell, to: Cell) -> bool {
         if let Some(ref mut piece) = self.get_piece(&from).clone() {
+            piece.cell = to.clone();
             self.board[from.row as usize][from.col as usize] = None;
             self.board[to.row as usize][to.col as usize] = Some(piece.clone());
-            piece.cell = to;
-            println!("moved");
-            println!("{:?}", self.board);
             return true
         }
         false
