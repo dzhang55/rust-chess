@@ -12,6 +12,5 @@ mod board;
 
 fn main() {
     chess_server::start();
-    //webpage::serve();
     page::main();
 }

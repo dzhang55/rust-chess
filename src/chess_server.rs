@@ -109,6 +109,9 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
             Action::Select{ref addr, ref cell} => {
                 let ref board = *mutex_board.lock().unwrap();
                 let mut cells = board.potential_moves(cell);
+                if !board.is_friendly_board(cell) {
+                    continue;
+                }
                 cells.retain(|m| !board.self_check(cell.clone(), m.clone()));
                 new_action = Action::Moves{cells: cells};
                 let mut clients_map = clients.lock().unwrap();
@@ -124,11 +127,13 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
             Action::Move{ref from, ref to} => {
                 let ref mut board = *mutex_board.lock().unwrap();
                 board.move_piece(from.clone(), to.clone());
+                let check = board.check();
+                let checkmate = board.checkmate();
                 board.switch_color();
-                new_action = Action::Board{board: board.clone(), check: board.check(),
-                                           checkmate: board.checkmate()};
+                new_action = Action::Board{board: board.clone(), check: check,
+                                           checkmate: checkmate};
             },
-            _ => new_action = Action::Connect{ addr: String::new() },
+            _ => new_action = action,
         }
         let mut clients_map = clients.lock().unwrap();
         let message = Message::text(json::encode(&new_action).unwrap());
@@ -208,8 +213,17 @@ fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
                         mpsc_sender.send(encoded_action).unwrap();
                     },
                     "Msg" => {
+                        let user;
+                        if ip == *white_ip.lock().unwrap() {
+                            user = "White";
+                        }
+                        else if ip == *black_ip.lock().unwrap() {
+                            user = "Black";
+                        } else {
+                            user = "Spectator";
+                        }
                         let action = Action::Msg{
-                            user: payload.fields[0].clone(), 
+                            user: String::from(user), 
                             text: payload.fields[1].clone()
                         };
                         let encoded_action = json::encode(&action).unwrap();

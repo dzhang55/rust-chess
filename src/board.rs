@@ -56,6 +56,7 @@ impl Cell {
 }
 
 impl Board {
+    
     /// Helper function to put the four symmetrical pieces on the board.
     fn symmetrical_pieces(black_i: i32, j: i32, board: &mut Vec<Vec<Option<Piece>>>, piece_type: PieceType) {
         board[black_i as usize][j as usize] = Some(Piece{
@@ -132,6 +133,7 @@ impl Board {
         }
     }
 
+    /// Helper function that checks if it is white's turn.
     pub fn white_turn(&self) -> bool {
         self.color == Color::White
     }
@@ -161,7 +163,16 @@ impl Board {
         false
     }
 
+    /// Helper function to check if a cell holds a friendly piece relative to board.
+    pub fn is_friendly_board(&self, cell: &Cell) -> bool {
+        if let &Some(ref piece) = self.get_piece(cell) {
+            return piece.color == self.color
+        }
+        false
+    }
+
     /// Returns the potential moves in the given directions, stopping upon a collision.
+    /// Used for Bishop, Rook, and Queen.
     fn moves_until_collision(&self, dirs: Vec<(i32, i32)>, cell: Cell) -> Vec<Cell> {
         let mut moves = Vec::new();
         for dir in &dirs {
@@ -223,6 +234,7 @@ impl Board {
     }
 
     /// Helper function to implement logic for pieces with set directions.
+    /// Pieces include the Knight and the King.
     fn basic_moves(&self, dirs: Vec<(i32, i32)>, cell: Cell) -> Vec<Cell> {
         let mut moves = Vec::new();
         for dir in dirs {
@@ -275,6 +287,7 @@ impl Board {
     }
 
     /// Helper function to check if a move would place the current player's king in danger.
+    /// Clones the board and makes the move, before running check() on the clone.
     pub fn self_check(&self, from: Cell, to: Cell) -> bool {
         let mut new_board = self.clone();
         new_board.move_piece(from, to);
@@ -321,6 +334,8 @@ impl Board {
     }
 
     /// Helper function that checks for check, i.e. if the enemy king is in danger.
+    /// Iterates through all friendly pieces and checks if the enemy king is in any
+    /// of their potential moves.
     pub fn check(&self) -> bool {
         for friendly_cell in self.friendly_pieces() {
             if self.contains_enemy_king(self.potential_moves(&friendly_cell)) {
@@ -330,7 +345,9 @@ impl Board {
         false
     }
 
-    /// Helper function that checks for checkmate
+    /// Helper function that checks for checkmate.
+    /// Iterates through all enemy pieces and checks if any of their potential moves
+    /// can bring them out of check.
     pub fn checkmate(&self) -> bool {
         for cell in self.enemy_pieces() {
             for potential_move in self.potential_moves(&cell) {
@@ -341,11 +358,10 @@ impl Board {
                 }
             }
         }
-        println!("CHECKMATE");
         true
     }
 
-    /// Helper function that moves a piece to a target cell
+    /// Helper function that moves a piece from a cell to the target cell
     pub fn move_piece(&mut self, from: Cell, to: Cell) -> bool {
         if let Some(ref mut piece) = self.get_piece(&from).clone() {
             piece.cell = to.clone();

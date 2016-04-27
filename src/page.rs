@@ -13,15 +13,10 @@ use iron::Iron;
 use staticfile::Static;
 use mount::Mount;
 
+/// Serves the html page.
 pub fn main() {
     let mut mount = Mount::new();
     mount.mount("/", Static::new(Path::new("html/")));
-    //mount.mount("/css", Static::new(Path::new("html/css")));
-    //mount.mount("/js", Static::new(Path::new("html/js")));
-    //mount.mount("/img", Static::new(Path::new("html/img")));
-
-    //Iron::new(mount).listen(Ipv4Addr::new(127, 0, 0, 1), 1980);
     Iron::new(mount).http("localhost:1980").unwrap();
-
     println!("Doc server running on http://localhost:1980/");
 }
