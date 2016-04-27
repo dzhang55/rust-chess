@@ -23,14 +23,16 @@ enum Action {
     Connect { addr: String },
     Disconnect { addr: String },
     Select { cell: Cell },
-    Move { cell: Cell },
+    Board { board: Board, check: bool, checkmate: bool},
     Msg {user: String, text: String},
+    Moves { cells: Vec<Cell>},
+    Move { from: Cell, to: Cell },
 }
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct Payload {
-	variant: String,
-	fields: Vec<String>
+    variant: String,
+    fields: Vec<String>
 }
 
 /// Spawn a WebSocket listener thread.
@@ -41,55 +43,95 @@ pub fn start() {
 /// Create the relay MPSC (multi-producer/single-consumer) channel, spawn the
 /// relay thread, then listen for WebSocket clients and spawn their threads.
 fn listen() {
-	let server = Server::bind(WS_ADDR).unwrap();
-	let (tx, rx) = mpsc::channel();
-	let clients = Arc::new(Mutex::new(Vec::new()));
-	let clients_clone = clients.clone();
-	thread::spawn(move || relay_thread(clients_clone, rx));
+    let server = Server::bind(WS_ADDR).unwrap();
+    let (tx, rx) = mpsc::channel();
+    let clients = Arc::new(Mutex::new(Vec::new()));
+    let clients_clone = clients.clone();
+    let board = Arc::new(Mutex::new(Board::new()));
+    let board_clone = board.clone();
+    let black_ip = Arc::new(Mutex::new(String::new()));
+    let white_ip = Arc::new(Mutex::new(String::new()));
+    thread::spawn(move || relay_thread(board_clone, clients_clone, rx));
 
-	for connection in server {
-		let tx = tx.clone();
-		let request = connection.unwrap().read_request().unwrap(); // Get the request
+    for connection in server {
+        let tx = tx.clone();
+        let request = connection.unwrap().read_request().unwrap(); // Get the request
 
-		request.validate().unwrap(); // Validate the request
+        request.validate().unwrap(); // Validate the request
 
-		let response = request.accept(); // Form a response
+        let response = request.accept(); // Form a response
 
-		let mut client = response.send().unwrap(); // Send the response
+        let mut client = response.send().unwrap(); // Send the response
 
-		let ip = client.get_mut_sender()
-				.get_mut()
-				.peer_addr()
-				.unwrap();
+        let ip = client.get_mut_sender()
+                .get_mut()
+                .peer_addr()
+                .unwrap();
 
-		let ip_string = format!("{}", ip);
+        let ip_string = format!("{}", ip);
+        {
+        let ref mut black_ip_mut = black_ip.lock().unwrap();
+        let ref mut white_ip_mut = white_ip.lock().unwrap();
+        if white_ip_mut.is_empty() {
+            white_ip_mut.push_str(ip_string.as_str());
+        } 
+        else if black_ip_mut.is_empty() {
+            black_ip_mut.push_str(ip_string.as_str());
+        }
+        }
 
-		let (mut sender, receiver) = client.split();
-		sender.send_message(&Message::text(String::from("Welcome!"))).unwrap();
+        let (mut sender, receiver) = client.split();
+        sender.send_message(&Message::text(String::from("Welcome!"))).unwrap();
 
-		// add new client sender to list of clients
-		let ref mut clients_vec = *clients.lock().unwrap();
-		clients_vec.push(sender);
+        // add new client sender to list of clients
+        let ref mut clients_vec = *clients.lock().unwrap();
+        clients_vec.push(sender);
 
-		thread::spawn(move || client_thread(ip_string.clone(), tx, receiver));
-	}
+        let black_ip_clone = black_ip.clone();
+        let white_ip_clone = white_ip.clone();
+        let board_clone = board.clone();
+        thread::spawn(move || client_thread(board_clone, black_ip_clone, white_ip_clone,
+                                            ip_string.clone(), tx, receiver));
+    }
 }
 
 /// The relay thread handles all `Action`s received on its MPSC channel
 /// by sending them out to all of the currently connected clients.
 /// Also emits the potential moves to the client making a selection, and
 /// emits any change in board state to all clients
-fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
-			    mpsc_receiver: mpsc::Receiver<String>) {
-	let mut board = Board::new();
-	for action in mpsc_receiver {
-		let mut clients_vector = clients.lock().unwrap();
-		let message = Message::text(action);
-		// relay message to all of the clients
-		for client_sender in &mut *clients_vector {
-			client_sender.send_message(&message).unwrap();
-		}
-	}
+fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
+                mpsc_receiver: mpsc::Receiver<String>) {
+    for action_string in mpsc_receiver {
+        println!("{}", action_string);
+        let action: Action = json::decode(action_string.as_str()).unwrap();
+        let new_action;
+        match action {
+            Action::Select{ref cell} => {
+                println!("cell: {:?}", cell);
+                let ref board = *mutex_board.lock().unwrap();
+                let mut cells = board.potential_moves(cell);
+                cells.retain(|m| !board.self_check(cell.clone(), m.clone()));
+                println!("cells: {:?}", cells);
+                new_action = Action::Moves{cells: cells};
+                //new_action = Action::Connect{ addr: String::new() };
+            },
+            Action::Move{ref from, ref to} => {
+                let ref mut board = *mutex_board.lock().unwrap();
+                board.move_piece(from.clone(), to.clone());
+                board.switch_color();
+                new_action = Action::Board{board: board.clone(), check: board.check(),
+                                           checkmate: board.checkmate()};
+                // FIGURE OUT CHECK
+            },
+            _ => new_action = Action::Connect{ addr: String::new() },
+        }
+        let mut clients_vector = clients.lock().unwrap();
+        let message = Message::text(json::encode(&new_action).unwrap());
+        // relay message to all of the clients
+        for client_sender in &mut *clients_vector {
+            client_sender.send_message(&message).unwrap();
+        }
+    }
 }
 
 /// Each client thread waits for input (or disconnects) from its respective clients
@@ -104,33 +146,73 @@ fn relay_thread(clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
 ///
 /// * If the client sends any other message (i.e. `Action::Msg`), it will be relayed verbatim.
 ///   (But you should still deserialize and reserialize the `Action` to make sure it is valid!)
-fn client_thread(ip: String, mpsc_sender: mpsc::Sender<String>,
+fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
+                 white_ip: Arc<Mutex<String>>, ip: String, mpsc_sender: mpsc::Sender<String>,
                  mut client_receiver: receiver::Receiver<WebSocketStream>) {
 
-	// Send connect message to MPSC channel
-	let ca = Action::Connect{addr: ip.clone()};
-	let encoded_ca = json::encode(&ca).unwrap();
-	mpsc_sender.send(encoded_ca).unwrap();
+    // Send connect message to MPSC channel
+    let ca = Action::Connect{addr: ip.clone()};
+    let encoded_ca = json::encode(&ca).unwrap();
+    mpsc_sender.send(encoded_ca).unwrap();
 
-	for message in client_receiver.incoming_messages() {
-		let message: Message = message.unwrap();
-		match message.opcode {
-			// disconnect
-		 	Type::Close => {
-				let ca = Action::Disconnect{addr: ip.clone()};
-		 		let encoded_ca = json::encode(&ca).unwrap();
-		 		mpsc_sender.send(encoded_ca).unwrap();
-		 	},
-		 	_ => {
-		 		// json object with username and message
-		 		let payload: Payload = json::decode(str::from_utf8(&message.payload).unwrap()).unwrap();
-		 		let ca = Action::Msg{
-		 			user: payload.fields[0].clone(),
-		 			text: payload.fields[1].clone()
-		 		};
-		 		let encoded_ca = json::encode(&ca).unwrap();
-		 		mpsc_sender.send(encoded_ca).unwrap();
-		 	}
-		}
-	}
+    for message in client_receiver.incoming_messages() {
+        let message: Message = message.unwrap();
+        match message.opcode {
+            // disconnect
+            Type::Close => {
+                let ca = Action::Disconnect{addr: ip.clone()};
+                let encoded_ca = json::encode(&ca).unwrap();
+                mpsc_sender.send(encoded_ca).unwrap();
+            },
+            _ => {
+                // json object with username and message
+                let payload: Payload = json::decode(str::from_utf8(&message.payload).unwrap()).unwrap();
+                println!("{}", payload.variant);
+                let ref board = *mutex_board.lock().unwrap();
+                match payload.variant.as_ref() {
+                    "Select" => {
+                        if !((board.white_turn() && ip == *white_ip.lock().unwrap()) ||
+                                (!board.white_turn() && ip == *black_ip.lock().unwrap())) {
+                            continue;
+                        }
+                        let action = Action::Select{
+                            cell: Cell::new(
+                                payload.fields[0].clone().parse::<i32>().unwrap(),
+                                payload.fields[1].clone().parse::<i32>().unwrap()
+                            )
+                        };
+                        let encoded_action = json::encode(&action).unwrap();
+                        mpsc_sender.send(encoded_action).unwrap();
+                    },
+                    "Move" => {
+                        if !((board.white_turn() && ip == *white_ip.lock().unwrap()) ||
+                                (!board.white_turn() && ip == *black_ip.lock().unwrap())) {
+                            continue;
+                        }
+                        let action = Action::Move{
+                            from: Cell::new(
+                                payload.fields[0].clone().parse::<i32>().unwrap(),
+                                payload.fields[1].clone().parse::<i32>().unwrap()
+                            ),
+                            to: Cell::new(
+                                payload.fields[2].clone().parse::<i32>().unwrap(),
+                                payload.fields[3].clone().parse::<i32>().unwrap()
+                            )
+                        };
+                        let encoded_action = json::encode(&action).unwrap();
+                        mpsc_sender.send(encoded_action).unwrap();
+                    },
+                    "Msg" => {
+                        let action = Action::Msg{
+                            user: payload.fields[0].clone(), 
+                            text: payload.fields[1].clone()
+                        };
+                        let encoded_action = json::encode(&action).unwrap();
+                        mpsc_sender.send(encoded_action).unwrap();
+                    },
+                    _ => println!("should not happen"),
+                }
+            }
+        }
+    }
 }

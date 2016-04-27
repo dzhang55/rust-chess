@@ -7,3 +7,6 @@ authors = ["Daniel Zhang <danielzh@sas.upenn.edu>"]
 hyper = "0.7.2"
 rustc-serialize = "0.3"
 websocket = "0.15.1"
+iron = "0.3.0"
+staticfile = "0.2.0"
+mount = "0.1.0"
