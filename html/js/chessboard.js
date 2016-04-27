@@ -44,7 +44,6 @@ function load() {
 				elem.append(user);
 				elem.append(" disconnected.");
 			} else if (msg.variant == "Moves") {
-				console.log(msg);
 				console.log("MOVES!");
 				moves = msg.fields[0];
 				for (var i = 0; i < moves.length; i++) {
@@ -53,11 +52,21 @@ function load() {
 					greySquare(square);
 				}
 			} else if (msg.variant == "Board") {
-				console.log(msg);
+				var state = msg.fields[0];
+				console.log(state.board);
+				setPosition(chessBoard, state.board);
+				if (state.checkmate) {
+					$("#check").html("Checkmate!");
+				}
+				else if (state.check) {
+					$("#check").html("Check!");
+				}
+				else {
+					$("#check").html("");
+				}
 			} else if (msg.variant == "Select") {
-				console.log(msg);
 			} else if (msg.variant == "Move") {
-				console.log(msg);
+				removeGreySquares();
 			} else {
 				err(msg);
 				return;
@@ -133,12 +142,6 @@ function load() {
 		});
 	});
 	var onDragStart = function(source, piece, position, orientation) {
-		console.log("Drag started:");
-		console.log("Source: " + source);
-		console.log("Piece: " + piece);
-		console.log("Position: " + ChessBoard.objToFen(position));
-		console.log("Orientation: " + orientation);
-		console.log("--------------------");
 		var [row, col] = notationToIndex(source);
 		sockprom = sockprom.then(function() {
 			var o = { variant: "Select", fields: ["" + row, "" + col] };
@@ -174,14 +177,13 @@ function load() {
 	}
 
 	var cfg = {
-	  draggable: true,
-	  dropOffBoard: 'snapback', // this is the default
-	  onDragStart: onDragStart,
-	  onDrop: onDrop,
-	  position: 'start'
+		draggable: true,
+		dropOffBoard: 'snapback', // this is the default
+		onDragStart: onDragStart,
+		onDrop: onDrop,
+		position: 'start'
 	};
-
-	var board = ChessBoard('board', cfg);
+	var chessBoard = ChessBoard('board', cfg);
 }
 
 var notationToIndex = function(source) {
@@ -191,12 +193,8 @@ var notationToIndex = function(source) {
 };
 
 var indexToNotation = function(row, col) {
-	console.log(col);
 	var letter = String.fromCharCode(col + 97);
-	console.log("in indextonotation");
-	console.log(letter);
 	var number = 8 - row;
-	console.log(number);
 	return letter + number; 
 };
 
@@ -213,4 +211,52 @@ var greySquare = function(square) {
   }
 
   squareEl.css('background', background);
+};
+
+var setPosition = function(chessBoard, board) {
+	console.log("IM IN SETPOSITION");
+	var position = {};
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board[i].length; j++) {
+			if (board[i][j] == null) {
+				continue;
+			}
+			var cell = board[i][j].cell;
+			var color;
+			switch (board[i][j].color) {
+				case "Black":
+					color = "b";
+					break;
+				case "White":
+					color = "w";
+					break;
+			}
+			var piece;
+			switch (board[i][j].piece_type) {
+				case "Knight":
+					piece = "N";
+					break;
+				case "Pawn":
+					piece = "P";
+					break;
+				case "King":
+					piece = "K";
+					break;
+				case "Queen":
+					piece = "Q";
+					break;
+				case "Rook":
+					piece = "R";
+					break;
+				case "Bishop":
+					piece = "B";
+					break;
+
+			}
+			position[indexToNotation(cell.row, cell.col)] = color + piece;
+		}
+	}
+	console.log("setposition");
+	console.log(position);
+	chessBoard.position(position);
 };

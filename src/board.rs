@@ -187,13 +187,19 @@ impl Board {
             match piece.color {
                 Color::Black => {
                     if cell.row == 1 {
-                        moves.push(Cell{row: cell.row + 2, col: cell.col});
+                        let new_cell = Cell{row: cell.row + 2, col: cell.col};
+                        if self.is_empty(&new_cell) {
+                            moves.push(Cell{row: cell.row + 2, col: cell.col});
+                        }
                     }
                     dir = 1;
                 },
                 Color::White => {
                     if cell.row == 6 {
-                        moves.push(Cell{row: cell.row - 2, col: cell.col});
+                        let new_cell = Cell{row: cell.row - 2, col: cell.col};
+                        if self.is_empty(&new_cell) {
+                            moves.push(Cell{row: cell.row - 2, col: cell.col});
+                        }
                     }
                     dir = -1;
                 }
@@ -202,6 +208,7 @@ impl Board {
             let diag_right = Cell{row: cell.row + dir, col: cell.col + 1};
             let diag_left = Cell{row: cell.row + dir, col: cell.col - 1};
             if self.is_empty(&vertical) {
+                println!("vertical is empty");
                 moves.push(vertical);
             }
             if self.is_enemy(&cell, &diag_right) {
@@ -248,7 +255,6 @@ impl Board {
                     moves.append(&mut self.moves_until_collision(dirs, cell.clone()));  
                 },
                 PieceType::Pawn => {
-                    println!("pawn!");
                     moves.append(&mut self.pawn_moves(cell.clone()));
                 },
                 PieceType::King => {
@@ -343,6 +349,8 @@ impl Board {
             self.board[from.row as usize][from.col as usize] = None;
             self.board[to.row as usize][to.col as usize] = Some(piece.clone());
             piece.cell = to;
+            println!("moved");
+            println!("{:?}", self.board);
             return true
         }
         false

@@ -5,6 +5,7 @@ use rustc_serialize::json;
 use std::str;
 use std::thread;
 use std::sync::{Arc, Mutex, mpsc};
+use std::collections::HashMap;
 use websocket::{Receiver, Sender, Server, Message, WebSocketStream};
 use websocket::sender;
 use websocket::receiver;
@@ -22,9 +23,9 @@ const WS_ADDR: &'static str = "0.0.0.0:1981";
 enum Action {
     Connect { addr: String },
     Disconnect { addr: String },
-    Select { cell: Cell },
+    Select { addr: String, cell: Cell },
     Board { board: Board, check: bool, checkmate: bool},
-    Msg {user: String, text: String},
+    Msg { user: String, text: String},
     Moves { cells: Vec<Cell>},
     Move { from: Cell, to: Cell },
 }
@@ -45,7 +46,7 @@ pub fn start() {
 fn listen() {
     let server = Server::bind(WS_ADDR).unwrap();
     let (tx, rx) = mpsc::channel();
-    let clients = Arc::new(Mutex::new(Vec::new()));
+    let clients = Arc::new(Mutex::new(HashMap::new()));
     let clients_clone = clients.clone();
     let board = Arc::new(Mutex::new(Board::new()));
     let board_clone = board.clone();
@@ -69,15 +70,14 @@ fn listen() {
                 .unwrap();
 
         let ip_string = format!("{}", ip);
-        {
-        let ref mut black_ip_mut = black_ip.lock().unwrap();
-        let ref mut white_ip_mut = white_ip.lock().unwrap();
+
+        let ref mut black_ip_mut = *black_ip.lock().unwrap();
+        let ref mut white_ip_mut = *white_ip.lock().unwrap();
         if white_ip_mut.is_empty() {
             white_ip_mut.push_str(ip_string.as_str());
-        } 
+        }
         else if black_ip_mut.is_empty() {
             black_ip_mut.push_str(ip_string.as_str());
-        }
         }
 
         let (mut sender, receiver) = client.split();
@@ -85,7 +85,7 @@ fn listen() {
 
         // add new client sender to list of clients
         let ref mut clients_vec = *clients.lock().unwrap();
-        clients_vec.push(sender);
+        clients_vec.insert(ip_string.clone(), sender);
 
         let black_ip_clone = black_ip.clone();
         let white_ip_clone = white_ip.clone();
@@ -99,21 +99,28 @@ fn listen() {
 /// by sending them out to all of the currently connected clients.
 /// Also emits the potential moves to the client making a selection, and
 /// emits any change in board state to all clients
-fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<Vec<sender::Sender<WebSocketStream>>>>,
+fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<String, sender::Sender<WebSocketStream>>>>,
                 mpsc_receiver: mpsc::Receiver<String>) {
     for action_string in mpsc_receiver {
         println!("{}", action_string);
         let action: Action = json::decode(action_string.as_str()).unwrap();
         let new_action;
         match action {
-            Action::Select{ref cell} => {
-                println!("cell: {:?}", cell);
+            Action::Select{ref addr, ref cell} => {
                 let ref board = *mutex_board.lock().unwrap();
                 let mut cells = board.potential_moves(cell);
                 cells.retain(|m| !board.self_check(cell.clone(), m.clone()));
                 println!("cells: {:?}", cells);
                 new_action = Action::Moves{cells: cells};
-                //new_action = Action::Connect{ addr: String::new() };
+                let mut clients_map = clients.lock().unwrap();
+                let message = Message::text(json::encode(&new_action).unwrap());
+                // relay message to only this clients
+                for (client_addr, client_sender) in &mut *clients_map {
+                    if addr == client_addr {
+                        client_sender.send_message(&message).unwrap();
+                    }
+                }
+                continue;
             },
             Action::Move{ref from, ref to} => {
                 let ref mut board = *mutex_board.lock().unwrap();
@@ -121,14 +128,13 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<Vec<sender::S
                 board.switch_color();
                 new_action = Action::Board{board: board.clone(), check: board.check(),
                                            checkmate: board.checkmate()};
-                // FIGURE OUT CHECK
             },
             _ => new_action = Action::Connect{ addr: String::new() },
         }
-        let mut clients_vector = clients.lock().unwrap();
+        let mut clients_map = clients.lock().unwrap();
         let message = Message::text(json::encode(&new_action).unwrap());
         // relay message to all of the clients
-        for client_sender in &mut *clients_vector {
+        for (addr, client_sender) in &mut *clients_map {
             client_sender.send_message(&message).unwrap();
         }
     }
@@ -144,8 +150,8 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<Vec<sender::S
 ///
 /// * If the client disconnects, a `Action::Disconnect` will be relayed with their IP address.
 ///
-/// * If the client sends any other message (i.e. `Action::Msg`), it will be relayed verbatim.
-///   (But you should still deserialize and reserialize the `Action` to make sure it is valid!)
+/// * If the client sends any other message (i.e. `Action::Select`), it will be parsed accordingly
+/// and then relayed.
 fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
                  white_ip: Arc<Mutex<String>>, ip: String, mpsc_sender: mpsc::Sender<String>,
                  mut client_receiver: receiver::Receiver<WebSocketStream>) {
@@ -167,7 +173,6 @@ fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
             _ => {
                 // json object with username and message
                 let payload: Payload = json::decode(str::from_utf8(&message.payload).unwrap()).unwrap();
-                println!("{}", payload.variant);
                 let ref board = *mutex_board.lock().unwrap();
                 match payload.variant.as_ref() {
                     "Select" => {
@@ -176,6 +181,7 @@ fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
                             continue;
                         }
                         let action = Action::Select{
+                            addr: ip.clone(),
                             cell: Cell::new(
                                 payload.fields[0].clone().parse::<i32>().unwrap(),
                                 payload.fields[1].clone().parse::<i32>().unwrap()
