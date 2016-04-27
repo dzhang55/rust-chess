@@ -46,11 +46,11 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-39' class='srclink' href='../../src/chess/chess_server.rs.html#1-136' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-19' class='srclink' href='../../src/chess/src/chess_server.rs.html#1-237' title='goto source code'>[src]</a></span></h1>
 <div class='docblock'><p>A module for the server logic of Chess. Handles all WebSocket clients using
 a relay MPSC channel. Sends information about game logic through Actions.</p>
 </div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
-<table><tr><td><code>use std::prelude::<a class='mod' href='https://doc.rust-lang.org/nightly/std/prelude/v1/index.html' title='std::prelude::v1'>v1</a>::*;</code></td></tr><tr><td><code>use rustc_serialize::<a class='mod' href='https://doc.rust-lang.org/rustc-serialize/rustc_serialize/json/index.html' title='rustc_serialize::json'>json</a>;</code></td></tr><tr><td><code>use std::<a class='mod' href='https://doc.rust-lang.org/nightly/collections/str/index.html' title='collections::str'>str</a>;</code></td></tr><tr><td><code>use std::<a class='mod' href='https://doc.rust-lang.org/nightly/std/thread/index.html' title='std::thread'>thread</a>;</code></td></tr><tr><td><code>use std::sync::{<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>, <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>, <a class='mod' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/index.html' title='std::sync::mpsc'>mpsc</a>};</code></td></tr><tr><td><code>use websocket::{Receiver, Sender, Server, Message, WebSocketStream};</code></td></tr><tr><td><code>use websocket::sender;</code></td></tr><tr><td><code>use websocket::receiver;</code></td></tr><tr><td><code>use websocket::message::Type;</code></td></tr><tr><td><code>use super::board::{<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>, <a class='struct' href='../../chess/board/struct.Cell.html' title='chess::board::Cell'>Cell</a>};</code></td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table><tr><td><code>use std::prelude::<a class='mod' href='https://doc.rust-lang.org/nightly/std/prelude/v1/index.html' title='std::prelude::v1'>v1</a>::*;</code></td></tr><tr><td><code>use rustc_serialize::<a class='mod' href='https://doc.rust-lang.org/rustc-serialize/rustc_serialize/json/index.html' title='rustc_serialize::json'>json</a>;</code></td></tr><tr><td><code>use std::<a class='mod' href='https://doc.rust-lang.org/nightly/collections/str/index.html' title='collections::str'>str</a>;</code></td></tr><tr><td><code>use std::<a class='mod' href='https://doc.rust-lang.org/nightly/std/thread/index.html' title='std::thread'>thread</a>;</code></td></tr><tr><td><code>use std::sync::{<a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>, <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>, <a class='mod' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/index.html' title='std::sync::mpsc'>mpsc</a>};</code></td></tr><tr><td><code>use std::collections::<a class='struct' href='https://doc.rust-lang.org/nightly/std/collections/hash/map/struct.HashMap.html' title='std::collections::hash::map::HashMap'>HashMap</a>;</code></td></tr><tr><td><code>use websocket::{Receiver, Sender, Server, Message, WebSocketStream};</code></td></tr><tr><td><code>use websocket::sender;</code></td></tr><tr><td><code>use websocket::receiver;</code></td></tr><tr><td><code>use websocket::message::Type;</code></td></tr><tr><td><code>use super::board::{<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>, <a class='struct' href='../../chess/board/struct.Cell.html' title='chess::board::Cell'>Cell</a>};</code></td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
                     <tr class=' module-item'>
                         <td><a class='struct' href='struct.Payload.html'
@@ -66,7 +66,6 @@ a relay MPSC channel. Sends information about game logic through Actions.</p>
                                title='chess::chess_server::Action'>Action</a></td>
                         <td class='docblock short'>
                              <p>Represents a single, atomic action taken by a client.</p>
-
                         </td>
                     </tr>
                 </table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
@@ -86,7 +85,6 @@ a relay MPSC channel. Sends information about game logic through Actions.</p>
                         <td class='docblock short'>
                              <p>Each client thread waits for input (or disconnects) from its respective clients
 and relays the appropriate messages via the relay MPSC channel.</p>
-
                         </td>
                     </tr>
                 
@@ -96,7 +94,6 @@ and relays the appropriate messages via the relay MPSC channel.</p>
                         <td class='docblock short'>
                              <p>Create the relay MPSC (multi-producer/single-consumer) channel, spawn the
 relay thread, then listen for WebSocket clients and spawn their threads.</p>
-
                         </td>
                     </tr>
                 
@@ -108,7 +105,6 @@ relay thread, then listen for WebSocket clients and spawn their threads.</p>
 by sending them out to all of the currently connected clients.
 Also emits the potential moves to the client making a selection, and
 emits any change in board state to all clients</p>
-
                         </td>
                     </tr>
                 
@@ -117,7 +113,6 @@ emits any change in board state to all clients</p>
                                title='chess::chess_server::start'>start</a></td>
                         <td class='docblock short'>
                              <p>Spawn a WebSocket listener thread.</p>
-
                         </td>
                     </tr>
                 </table></section>
@@ -163,7 +158,7 @@ emits any change in board state to all clients</p>
 
                 <p>
                     Search functions by type signature (e.g.
-                    <code>vec -> usize</code>)
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
                 </p>
             </div>
         </div>

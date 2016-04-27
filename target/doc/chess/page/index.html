@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `board` mod in crate `chess`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, board">
+    <meta name="description" content="API documentation for the Rust `page` mod in crate `chess`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, page">
 
-    <title>chess::board - Rust</title>
+    <title>chess::page - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
     <link rel="stylesheet" type="text/css" href="../../main.css">
@@ -27,7 +27,7 @@
 
     <nav class="sidebar">
         
-        <p class='location'><a href='../index.html'>chess</a></p><script>window.sidebarCurrent = {name: 'board', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
+        <p class='location'><a href='../index.html'>chess</a></p><script>window.sidebarCurrent = {name: 'page', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script>
     </nav>
 
     <nav class="sub">
@@ -42,54 +42,19 @@
     </nav>
 
     <section id='main' class="content mod">
-<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>chess</a>::<wbr><a class='mod' href=''>board</a></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>chess</a>::<wbr><a class='mod' href=''>page</a></span><span class='out-of-band'><span id='render-detail'>
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-328' class='srclink' href='../../src/chess/src/board.rs.html#1-387' title='goto source code'>[src]</a></span></h1>
-<div class='docblock'><p>A module for the game logic of Chess. Stores the Board object and contains
-methods for finding potential moves, check/checkmate, etc.</p>
-</div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
-<table><tr><td><code>use std::prelude::<a class='mod' href='https://doc.rust-lang.org/nightly/std/prelude/v1/index.html' title='std::prelude::v1'>v1</a>::*;</code></td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+        </span><a id='src-10' class='srclink' href='../../src/chess/src/page.rs.html#10-22' title='goto source code'>[src]</a></span></h1>
+<h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
+<table><tr><td><code>use std::prelude::<a class='mod' href='https://doc.rust-lang.org/nightly/std/prelude/v1/index.html' title='std::prelude::v1'>v1</a>::*;</code></td></tr><tr><td><code>use std::path::<a class='struct' href='https://doc.rust-lang.org/nightly/std/path/struct.Path.html' title='std::path::Path'>Path</a>;</code></td></tr><tr><td><code>use iron::<a class='struct' href='http://ironframework.io/core/iron/iron/iron/struct.Iron.html' title='iron::iron::Iron'>Iron</a>;</code></td></tr><tr><td><code>use staticfile::Static;</code></td></tr><tr><td><code>use mount::Mount;</code></td></tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
 <table>
                     <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Board.html'
-                               title='chess::board::Board'>Board</a></td>
+                        <td><a class='fn' href='fn.main.html'
+                               title='chess::page::main'>main</a></td>
                         <td class='docblock short'>
-                             <p>Represents the board state.</p>
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Cell.html'
-                               title='chess::board::Cell'>Cell</a></td>
-                        <td class='docblock short'>
-                             <p>Represents the index of a single cell in the board.</p>
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Piece.html'
-                               title='chess::board::Piece'>Piece</a></td>
-                        <td class='docblock short'>
-                             <p>Represents a single chess piece.</p>
-                        </td>
-                    </tr>
-                </table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
-<table>
-                    <tr class=' module-item'>
-                        <td><a class='enum' href='enum.Color.html'
-                               title='chess::board::Color'>Color</a></td>
-                        <td class='docblock short'>
-                             <p>Represents the color of a piece.</p>
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='enum' href='enum.PieceType.html'
-                               title='chess::board::PieceType'>PieceType</a></td>
-                        <td class='docblock short'>
-                             <p>Represents the possible types of pieces in a given cell.</p>
+                             <p>Serves the html page.</p>
                         </td>
                     </tr>
                 </table></section>
