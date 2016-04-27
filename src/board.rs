@@ -57,32 +57,38 @@ impl Board {
 		&self.board[cell.row as usize][cell.row as usize]
 	}
 
+	/// Helper function to check if a proposed cell is in the bounds of the board.
 	fn inbounds(&self, cell: &Cell) -> bool {
 		cell.row < 8 && cell.row >= 0 && cell.col < 8 && cell.row >= 0
 	}
 
+	/// Helper function to check if a cell has a piece.
 	fn is_empty(&self, cell: &Cell) -> bool {
 		!self.get_piece(cell).is_some()
 	}
 
-	fn is_enemy(&self, cell: &Cell) -> bool {
-		if let Some(ref piece) = *self.get_piece(cell) {
-			return piece.color != self.color
+	/// Helper function to check if a cell holds an enemy piece.
+	fn is_enemy(&self, from: &Cell, to: &Cell) -> bool {
+		if let &Some(ref from_piece) = self.get_piece(from) {
+			if let &Some(ref to_piece) = self.get_piece(to) {
+				return to_piece.color != from_piece.color
+			}
 		}
 		false
 	}
 
 	/// Returns the potential moves in the given directions, stopping upon a collision.
-	fn moves_until_collision(&self, dirs: Vec<(i32, i32)>, mut cell: Cell) -> Vec<Cell> {
+	fn moves_until_collision(&self, dirs: Vec<(i32, i32)>, cell: Cell) -> Vec<Cell> {
 		let mut moves = Vec::new();
 		for dir in &dirs {
-			while self.inbounds(&cell) && self.is_empty(&cell) {
+			let mut new_cell = cell.clone();
+			while self.inbounds(&new_cell) && self.is_empty(&new_cell) {
 				moves.push(cell.clone());
-				cell.row += dir.0;
-				cell.col += dir.1;
+				new_cell.row += dir.0;
+				new_cell.col += dir.1;
 			}
 			// Case for enemy piece collision
-			if self.is_enemy(&cell) {
+			if self.is_enemy(&cell, &new_cell) {
 				moves.push(cell.clone());
 			}
 		}
@@ -115,10 +121,10 @@ impl Board {
 			if self.is_empty(&vertical) {
 				moves.push(vertical);
 			}
-			if self.is_enemy(&diag_right) {
+			if self.is_enemy(&cell, &diag_right) {
 				moves.push(diag_right);
 			}
-			if self.is_enemy(&diag_left) {
+			if self.is_enemy(&cell, &diag_left) {
 				moves.push(diag_left);
 			}
 		}
@@ -126,37 +132,21 @@ impl Board {
 	}
 
 	/// Helper function to implement logic for pieces with set directions.
-	fn basic_moves(&self, dirs: Vec<(i32, i32)>, mut cell: Cell) -> Vec<Cell> {
+	fn basic_moves(&self, dirs: Vec<(i32, i32)>, cell: Cell) -> Vec<Cell> {
 		let mut moves = Vec::new();
 		for dir in dirs {
 			let mut new_cell = cell.clone();
 			new_cell.row = new_cell.row + dir.0;
 			new_cell.col = new_cell.col + dir.1;
-			if self.is_empty(&new_cell) || self.is_enemy(&new_cell) {
+			if self.is_empty(&new_cell) || self.is_enemy(&cell, &new_cell) {
 				moves.push(new_cell);
 			}
 		}
 		moves
 	}
 
-	/// Helper function to check if a move would place the current player's king in danger.
-	fn self_check(&self, piece: &Piece, to: Cell) -> bool {
-		let mut new_board = self.clone();
-		new_board.move_piece(piece.clone(), to);
-		new_board.switch_color();
-		new_board.check()
-	}
-
-	/// Helper function to swap the current player.
-	fn switch_color(&mut self) {
-		match self.color {
-			Color::Black => self.color = Color::White,
-			Color::White => self.color = Color::Black
-		}
-	}
-
 	/// Calculate the potential moves for a given cell index.
-	pub fn potential_moves(&self, cell: Cell) -> Vec<Cell> {
+	pub fn potential_moves(&self, cell: &Cell) -> Vec<Cell> {
 		let mut moves: Vec<Cell> = Vec::new();
 		if let Some(ref piece) = self.board[cell.row as usize][cell.col as usize] {
 			match piece.piece_type {
@@ -188,48 +178,98 @@ impl Board {
 
 				}
 			}
-			moves.retain(|m| !self.self_check(piece, m.clone()));
+			moves.retain(|m| !self.self_check(cell.clone(), m.clone()));
 		}
 		moves
 	}
 
+	/// Helper function to check if a move would place the current player's king in danger.
+	fn self_check(&self, from: Cell, to: Cell) -> bool {
+		let mut new_board = self.clone();
+		new_board.move_piece(from, to);
+		new_board.switch_color();
+		new_board.check()
+	}
 
-	/// Helper function that checks for check
+	/// Helper function to swap the current player.
+	fn switch_color(&mut self) {
+		match self.color {
+			Color::Black => self.color = Color::White,
+			Color::White => self.color = Color::Black
+		}
+	}
+
+	/// Helper function to return cells of all friendly pieces.
+	fn friendly_pieces(&self) -> Vec<Cell> {
+		let mut cells = Vec::new();
+		for row in &self.board {
+			for piece_option in row {
+				if let &Some(ref piece) = piece_option {
+					if piece.color == self.color {
+						cells.push(piece.cell.clone());
+					}
+				}
+			}
+		}
+		cells
+	}
+
+	/// Helper function to return cells of all enemy pieces.
+	fn enemy_pieces(&self) -> Vec<Cell> {
+		let mut cells = Vec::new();
+		for row in &self.board {
+			for piece_option in row {
+				if let &Some(ref piece) = piece_option {
+					if piece.color != self.color {
+						cells.push(piece.cell.clone());
+					}
+				}
+			}
+		}
+		cells
+	}
+
+	/// Helper function that checks for check, i.e. if the enemy king is in danger.
 	fn check(&self) -> bool {
-
-		//for row in &self.board {
-		//	for piece_option in row {
-		//		if let Some(ref piece) = piece_option {
-		//			if piece.color == self.color && self.contains_enemy_king(self.potential_moves(piece.cell)) {
-		//				return true
-		//			}
-		//		}
-		//	}
-		//}
+		for friendly_cell in self.friendly_pieces() {
+			if self.contains_enemy_king(self.potential_moves(&friendly_cell)) {
+				return true
+			}
+		}
 		false
 	}
 
 	/// Helper function that checks for checkmate
 	fn checkmate(&self) -> bool {
-		// check if king can move to get out
-		// check if another piece can move in the way (which is a lot of computation)
+		for cell in self.enemy_pieces() {
+			for potential_move in self.potential_moves(&cell) {
+				let mut new_board = self.clone();
+				new_board.move_piece(cell.clone(), potential_move.clone());
+				if new_board.check() == false {
+					return false
+				}
+			}
+		}
 		true
 	}
 
 	/// Helper function that moves a piece to a target cell
-	fn move_piece(&mut self, mut piece: Piece, to: Cell) {
-		let from = piece.cell.clone();
-		self.board[from.row as usize][from.col as usize] = None;
-		self.board[to.row as usize][to.col as usize] = Some(piece);
-		piece.cell = to;
+	fn move_piece(&mut self, from: Cell, to: Cell) -> bool {
+		if let Some(ref mut piece) = self.get_piece(&from).clone() {
+			self.board[from.row as usize][from.col as usize] = None;
+			self.board[to.row as usize][to.col as usize] = Some(piece.clone());
+			piece.cell = to;
+			return true
+		}
+		false
 	}
 
 	/// Helper function that checks if a list of potential 
-	/// moves contains the king
+	/// moves contains the enemy king.
 	fn contains_enemy_king(&self, cells: Vec<Cell>) -> bool {
 		for cell in cells {
-			if let Some(ref piece) = self.board[cell.row as usize][cell.col as usize] {
-				if piece.piece_type == PieceType::King && piece.color == self.color {
+			if let &Some(ref piece) = self.get_piece(&cell) {
+				if piece.piece_type == PieceType::King && piece.color != self.color {
 					return true
 				}
 			}
