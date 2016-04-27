@@ -278,6 +278,17 @@
 <span id="235">235</span>
 <span id="236">236</span>
 <span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A module for the server logic of Chess. Handles all WebSocket clients using</span>
 <span class='doccomment'>//! a relay MPSC channel. Sends information about game logic through Actions.</span>
@@ -376,10 +387,14 @@
     }
 }
 
-<span class='doccomment'>/// The relay thread handles all `Action`s received on its MPSC channel</span>
-<span class='doccomment'>/// by sending them out to all of the currently connected clients.</span>
-<span class='doccomment'>/// Also emits the potential moves to the client making a selection, and</span>
-<span class='doccomment'>/// emits any change in board state to all clients</span>
+<span class='doccomment'>/// The relay thread handles all `Action`s received on its MPSC channel.</span>
+<span class='doccomment'>/// If it receives an Action::Select, it will calculate the potential_moves</span>
+<span class='doccomment'>/// that can be made by that cell, and then relay an Action::Moves to the</span>
+<span class='doccomment'>/// sender only. </span>
+<span class='doccomment'>/// If it receives an Action::Move, it will adjust the board state, check for</span>
+<span class='doccomment'>/// check and checkmate, switch turns, and then send an Action::Board with all</span>
+<span class='doccomment'>/// the state to all clients.</span>
+<span class='doccomment'>/// If it receives any other Action, it will relay the Action verbatim to all clients.</span>
 <span class='kw'>fn</span> <span class='ident'>relay_thread</span>(<span class='ident'>mutex_board</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>Board</span><span class='op'>&gt;&gt;</span>, <span class='ident'>clients</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>sender</span>::<span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>WebSocketStream</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;&gt;</span>,
                 <span class='ident'>mpsc_receiver</span>: <span class='ident'>mpsc</span>::<span class='ident'>Receiver</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>) {
     <span class='kw'>for</span> <span class='ident'>action_string</span> <span class='kw'>in</span> <span class='ident'>mpsc_receiver</span> {
@@ -397,7 +412,7 @@
                 <span class='ident'>new_action</span> <span class='op'>=</span> <span class='ident'>Action</span>::<span class='ident'>Moves</span>{<span class='ident'>cells</span>: <span class='ident'>cells</span>};
                 <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>clients_map</span> <span class='op'>=</span> <span class='ident'>clients</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
                 <span class='kw'>let</span> <span class='ident'>message</span> <span class='op'>=</span> <span class='ident'>Message</span>::<span class='ident'>text</span>(<span class='ident'>json</span>::<span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='ident'>new_action</span>).<span class='ident'>unwrap</span>());
-                <span class='comment'>// relay message to only this clients</span>
+                <span class='comment'>// Relay message to only this client.</span>
                 <span class='kw'>for</span> (<span class='ident'>client_addr</span>, <span class='ident'>client_sender</span>) <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>clients_map</span> {
                     <span class='kw'>if</span> <span class='ident'>addr</span> <span class='op'>==</span> <span class='ident'>client_addr</span> {
                         <span class='ident'>client_sender</span>.<span class='ident'>send_message</span>(<span class='kw-2'>&amp;</span><span class='ident'>message</span>).<span class='ident'>unwrap</span>();
@@ -406,6 +421,7 @@
                 <span class='kw'>continue</span>;
             },
             <span class='ident'>Action</span>::<span class='ident'>Move</span>{<span class='kw-2'>ref</span> <span class='ident'>from</span>, <span class='kw-2'>ref</span> <span class='ident'>to</span>} <span class='op'>=&gt;</span> {
+                <span class='comment'>// Modify board state and check for check, checkmate.</span>
                 <span class='kw'>let</span> <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>board</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>mutex_board</span>.<span class='ident'>lock</span>().<span class='ident'>unwrap</span>();
                 <span class='ident'>board</span>.<span class='ident'>move_piece</span>(<span class='ident'>from</span>.<span class='ident'>clone</span>(), <span class='ident'>to</span>.<span class='ident'>clone</span>());
                 <span class='kw'>let</span> <span class='ident'>check</span> <span class='op'>=</span> <span class='ident'>board</span>.<span class='ident'>check</span>();
@@ -435,8 +451,14 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// * If the client disconnects, a `Action::Disconnect` will be relayed with their IP address.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// * If the client sends any other message (i.e. `Action::Select`), it will be parsed accordingly</span>
-<span class='doccomment'>/// and then relayed.</span>
+<span class='doccomment'>/// * If the client sends a Action::Msg, the message will be relayed and the user will be adjusted</span>
+<span class='doccomment'>/// to Black, White, or Spectator accordingly.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// * If the client sends a Action::Select, if it is not their turn then this message will be discarded.</span>
+<span class='doccomment'>/// Otherwise, the Action::Select will be relayed with the selected cell and the client&#39;s IP address.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// * If the client sends a Action::Move, if it is not their turn then this message will be discarded.</span>
+<span class='doccomment'>/// Otherwise, the Action::Move will be relayed with the from cell and to cell.</span>
 <span class='kw'>fn</span> <span class='ident'>client_thread</span>(<span class='ident'>mutex_board</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>Board</span><span class='op'>&gt;&gt;</span>, <span class='ident'>black_ip</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>,
                  <span class='ident'>white_ip</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>, <span class='ident'>ip</span>: <span class='ident'>String</span>, <span class='ident'>mpsc_sender</span>: <span class='ident'>mpsc</span>::<span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>,
                  <span class='kw-2'>mut</span> <span class='ident'>client_receiver</span>: <span class='ident'>receiver</span>::<span class='ident'>Receiver</span><span class='op'>&lt;</span><span class='ident'>WebSocketStream</span><span class='op'>&gt;</span>) {

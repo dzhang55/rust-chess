@@ -95,10 +95,14 @@ fn listen() {
     }
 }
 
-/// The relay thread handles all `Action`s received on its MPSC channel
-/// by sending them out to all of the currently connected clients.
-/// Also emits the potential moves to the client making a selection, and
-/// emits any change in board state to all clients
+/// The relay thread handles all `Action`s received on its MPSC channel.
+/// If it receives an Action::Select, it will calculate the potential_moves
+/// that can be made by that cell, and then relay an Action::Moves to the
+/// sender only. 
+/// If it receives an Action::Move, it will adjust the board state, check for
+/// check and checkmate, switch turns, and then send an Action::Board with all
+/// the state to all clients.
+/// If it receives any other Action, it will relay the Action verbatim to all clients.
 fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<String, sender::Sender<WebSocketStream>>>>,
                 mpsc_receiver: mpsc::Receiver<String>) {
     for action_string in mpsc_receiver {
@@ -116,7 +120,7 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
                 new_action = Action::Moves{cells: cells};
                 let mut clients_map = clients.lock().unwrap();
                 let message = Message::text(json::encode(&new_action).unwrap());
-                // relay message to only this clients
+                // Relay message to only this client.
                 for (client_addr, client_sender) in &mut *clients_map {
                     if addr == client_addr {
                         client_sender.send_message(&message).unwrap();
@@ -125,6 +129,7 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
                 continue;
             },
             Action::Move{ref from, ref to} => {
+                // Modify board state and check for check, checkmate.
                 let ref mut board = *mutex_board.lock().unwrap();
                 board.move_piece(from.clone(), to.clone());
                 let check = board.check();
@@ -154,8 +159,14 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
 ///
 /// * If the client disconnects, a `Action::Disconnect` will be relayed with their IP address.
 ///
-/// * If the client sends any other message (i.e. `Action::Select`), it will be parsed accordingly
-/// and then relayed.
+/// * If the client sends a Action::Msg, the message will be relayed and the user will be adjusted
+/// to Black, White, or Spectator accordingly.
+///
+/// * If the client sends a Action::Select, if it is not their turn then this message will be discarded.
+/// Otherwise, the Action::Select will be relayed with the selected cell and the client's IP address.
+///
+/// * If the client sends a Action::Move, if it is not their turn then this message will be discarded.
+/// Otherwise, the Action::Move will be relayed with the from cell and to cell.
 fn client_thread(mutex_board: Arc<Mutex<Board>>, black_ip: Arc<Mutex<String>>,
                  white_ip: Arc<Mutex<String>>, ip: String, mpsc_sender: mpsc::Sender<String>,
                  mut client_receiver: receiver::Receiver<WebSocketStream>) {

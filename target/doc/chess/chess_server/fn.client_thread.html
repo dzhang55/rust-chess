@@ -46,7 +46,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-303' class='srclink' href='../../src/chess/src/chess_server.rs.html#159-237' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-303' class='srclink' href='../../src/chess/src/chess_server.rs.html#170-248' title='goto source code'>[src]</a></span></h1>
 <pre class='rust fn'>fn client_thread(mutex_board: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>&gt;&gt;, black_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, white_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, ip: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, mpsc_sender: <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/struct.Sender.html' title='std::sync::mpsc::Sender'>Sender</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;, client_receiver: Receiver&lt;WebSocketStream&gt;)</pre><div class='docblock'><p>Each client thread waits for input (or disconnects) from its respective clients
 and relays the appropriate messages via the relay MPSC channel.</p>
 
@@ -56,8 +56,12 @@ form as rustc_serialize&#39;s serialization of the <code>Action</code> type.</p>
 <ul>
 <li><p>If the client connects, a <code>Action::Connect</code> will be relayed with their IP address.</p></li>
 <li><p>If the client disconnects, a <code>Action::Disconnect</code> will be relayed with their IP address.</p></li>
-<li><p>If the client sends any other message (i.e. <code>Action::Select</code>), it will be parsed accordingly
-and then relayed.</p></li>
+<li><p>If the client sends a Action::Msg, the message will be relayed and the user will be adjusted
+to Black, White, or Spectator accordingly.</p></li>
+<li><p>If the client sends a Action::Select, if it is not their turn then this message will be discarded.
+Otherwise, the Action::Select will be relayed with the selected cell and the client&#39;s IP address.</p></li>
+<li><p>If the client sends a Action::Move, if it is not their turn then this message will be discarded.
+Otherwise, the Action::Move will be relayed with the from cell and to cell.</p></li>
 </ul>
 </div></section>
     <section id='search' class="content hidden"></section>

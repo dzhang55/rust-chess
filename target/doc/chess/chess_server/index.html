@@ -46,7 +46,7 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-19' class='srclink' href='../../src/chess/src/chess_server.rs.html#1-237' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-19' class='srclink' href='../../src/chess/src/chess_server.rs.html#1-248' title='goto source code'>[src]</a></span></h1>
 <div class='docblock'><p>A module for the server logic of Chess. Handles all WebSocket clients using
 a relay MPSC channel. Sends information about game logic through Actions.</p>
 </div><h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
@@ -101,10 +101,14 @@ relay thread, then listen for WebSocket clients and spawn their threads.</p>
                         <td><a class='fn' href='fn.relay_thread.html'
                                title='chess::chess_server::relay_thread'>relay_thread</a></td>
                         <td class='docblock short'>
-                             <p>The relay thread handles all <code>Action</code>s received on its MPSC channel
-by sending them out to all of the currently connected clients.
-Also emits the potential moves to the client making a selection, and
-emits any change in board state to all clients</p>
+                             <p>The relay thread handles all <code>Action</code>s received on its MPSC channel.
+If it receives an Action::Select, it will calculate the potential_moves
+that can be made by that cell, and then relay an Action::Moves to the
+sender only. 
+If it receives an Action::Move, it will adjust the board state, check for
+check and checkmate, switch turns, and then send an Action::Board with all
+the state to all clients.
+If it receives any other Action, it will relay the Action verbatim to all clients.</p>
                         </td>
                     </tr>
                 
