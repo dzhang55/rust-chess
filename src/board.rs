@@ -1,5 +1,8 @@
 //! A module for the game logic of Chess. Stores the Board object and contains
-//! methods for finding potential moves, check/checkmate, etc.
+//! methods for finding potential moves, check/checkmate, etc. It utilizes Cell
+//! objects in order to index into the board, which is a Vec x Vec of Piece
+//! options. The Piece object contains an enum of PieceType, which is used to
+//! determine the game behavior for each piece.
 
 #[derive(Debug, Clone)]
 #[derive(RustcDecodable, RustcEncodable)]
@@ -12,6 +15,8 @@ pub struct Cell {
 #[derive(Debug, Clone)]
 #[derive(RustcDecodable, RustcEncodable)]
 /// Represents the board state.
+/// color represents the turn i.e. white indicates it is white's turn.
+/// The board is represented by an 8x8 matrix of `Option<Piece>`.
 pub struct Board {
     color: Color,
     pub board: Vec<Vec<Option<Piece>>>,
@@ -40,6 +45,7 @@ enum Color {
 #[derive(Debug, Clone)]
 #[derive(RustcDecodable, RustcEncodable)]
 /// Represents a single chess piece.
+/// Stores the type of the piece, color, as well as the cell it resides in.
 pub struct Piece {
     piece_type: PieceType,
     color: Color,
@@ -56,7 +62,6 @@ impl Cell {
 }
 
 impl Board {
-    
     /// Helper function to put the four symmetrical pieces on the board.
     fn symmetrical_pieces(black_i: i32, j: i32, board: &mut Vec<Vec<Option<Piece>>>, piece_type: PieceType) {
         board[black_i as usize][j as usize] = Some(Piece{
