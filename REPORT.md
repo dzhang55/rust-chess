@@ -7,7 +7,9 @@
 I built upon our WebSocket Chat homework to create a multiplayer game of Chess!
 I implemented all the chess logic on the server side, then modified the Action
 protocol in order to allow the client to communicate with the server in order
-to highlight potential moves, make moves, and so on.
+to highlight potential moves, make moves, and so on. 
+
+Overall, I spent between 20-30 hours on this project.
 
 ## Accomplishments
 
