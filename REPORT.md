@@ -52,7 +52,9 @@ client, so that by keeping track of the black player IP and the white player IP,
 I could implement the functionality to send a message to just one of them. This
 was necessary for `Action::Moves`, because when the client received this message
 it would highlight the potential moves on the board. This should only occur
-for the player actually selecting the piece. 
+for the player actually selecting the piece. In addition, both the relay thread
+and the client threads had a reference to the board state, though only the relay
+thread would take a mutable reference in order to modify the state if necessary.
 
 Finally, the structure of the `Action` protocol was necessary in order to
 maintain all logic on the server side. Since the client relied on the server to
