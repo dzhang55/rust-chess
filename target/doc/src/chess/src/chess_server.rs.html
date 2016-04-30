@@ -291,6 +291,10 @@
 <span id="248">248</span>
 <span id="249">249</span>
 <span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A module for the server logic of Chess. Handles all WebSocket clients using</span>
 <span class='doccomment'>//! a relay MPSC channel. Sends information about game logic through Actions.</span>
@@ -391,14 +395,17 @@
     }
 }
 
-<span class='doccomment'>/// The relay thread handles all `Action`s received on its MPSC channel.</span>
-<span class='doccomment'>/// If it receives an &#39;Action::Select&#39;, it will calculate the potential_moves</span>
-<span class='doccomment'>/// that can be made by that cell, and then relay an &#39;Action::Moves&#39; to the</span>
+<span class='doccomment'>/// The relay thread handles all `Action`s received on its MPSC channel. It contains an `Arc&lt;Mutex&lt;Board&gt;&gt;`</span>
+<span class='doccomment'>/// in order to both access board state and modify it if necessary. Since the client threads also require</span>
+<span class='doccomment'>/// references to the board state, this must be locked in a Mutex.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// * If it receives an `Action::Select`, it will calculate the potential_moves</span>
+<span class='doccomment'>/// that can be made by that cell, and then relay an `Action::Moves` to the</span>
 <span class='doccomment'>/// sender only. </span>
-<span class='doccomment'>/// If it receives an &#39;Action::Move&#39;, it will adjust the board state, check for</span>
-<span class='doccomment'>/// check and checkmate, switch turns, and then send an &#39;Action::Board&#39; with all</span>
+<span class='doccomment'>/// * If it receives an `Action::Move`, it will adjust the board state, check for</span>
+<span class='doccomment'>/// check and checkmate, switch turns, and then send an `Action::Board` with all</span>
 <span class='doccomment'>/// the state to all clients.</span>
-<span class='doccomment'>/// If it receives any other &#39;Action&#39;, it will relay the &#39;Action&#39; verbatim to all clients.</span>
+<span class='doccomment'>/// * If it receives any other `Action`, it will relay the `Action` verbatim to all clients.</span>
 <span class='kw'>fn</span> <span class='ident'>relay_thread</span>(<span class='ident'>mutex_board</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>Board</span><span class='op'>&gt;&gt;</span>, <span class='ident'>clients</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>HashMap</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>sender</span>::<span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>WebSocketStream</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;&gt;</span>,
                 <span class='ident'>mpsc_receiver</span>: <span class='ident'>mpsc</span>::<span class='ident'>Receiver</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>) {
     <span class='kw'>for</span> <span class='ident'>action_string</span> <span class='kw'>in</span> <span class='ident'>mpsc_receiver</span> {
@@ -445,8 +452,9 @@
     }
 }
 
-<span class='doccomment'>/// Each client thread waits for input (or disconnects) from its respective clients</span>
-<span class='doccomment'>/// and relays the appropriate messages via the relay MPSC channel.</span>
+<span class='doccomment'>/// Each client thread waits for input (or disconnects) from its respective clients, checks</span>
+<span class='doccomment'>/// if the command is a valid given the game state, and if so, relays the appropriate messages</span>
+<span class='doccomment'>/// via the relay MPSC channel.</span>
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// The messages received-from and sent-to the client should be JSON objects with the same</span>
 <span class='doccomment'>/// form as rustc_serialize&#39;s serialization of the `Action` type.</span>
@@ -455,14 +463,14 @@
 <span class='doccomment'>///</span>
 <span class='doccomment'>/// * If the client disconnects, a `Action::Disconnect` will be relayed with their IP address.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// * If the client sends a &#39;Action::Msg&#39;, the message will be relayed and the user will be adjusted</span>
+<span class='doccomment'>/// * If the client sends a `Action::Msg`, the message will be relayed and the user will be adjusted</span>
 <span class='doccomment'>/// to Black, White, or Spectator accordingly.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// * If the client sends a &#39;Action::Select&#39;, if it is not their turn then this message will be discarded.</span>
-<span class='doccomment'>/// Otherwise, the &#39;Action::Select&#39; will be relayed with the selected cell and the client&#39;s IP address.</span>
+<span class='doccomment'>/// * If the client sends a `Action::Select`, if it is not their turn then this message will be discarded.</span>
+<span class='doccomment'>/// Otherwise, the `Action::Select` will be relayed with the selected cell and the client&#39;s IP address.</span>
 <span class='doccomment'>///</span>
-<span class='doccomment'>/// * If the client sends a &#39;Action::Move&#39;, if it is not their turn then this message will be discarded.</span>
-<span class='doccomment'>/// Otherwise, the &#39;Action::Move&#39; will be relayed with the from cell and to cell.</span>
+<span class='doccomment'>/// * If the client sends a `Action::Move`, if it is not their turn then this message will be discarded.</span>
+<span class='doccomment'>/// Otherwise, the `Action::Move` will be relayed with the from cell and to cell.</span>
 <span class='kw'>fn</span> <span class='ident'>client_thread</span>(<span class='ident'>mutex_board</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>Board</span><span class='op'>&gt;&gt;</span>, <span class='ident'>black_ip</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>,
                  <span class='ident'>white_ip</span>: <span class='ident'>Arc</span><span class='op'>&lt;</span><span class='ident'>Mutex</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;&gt;</span>, <span class='ident'>ip</span>: <span class='ident'>String</span>, <span class='ident'>mpsc_sender</span>: <span class='ident'>mpsc</span>::<span class='ident'>Sender</span><span class='op'>&lt;</span><span class='ident'>String</span><span class='op'>&gt;</span>,
                  <span class='kw-2'>mut</span> <span class='ident'>client_receiver</span>: <span class='ident'>receiver</span>::<span class='ident'>Receiver</span><span class='op'>&lt;</span><span class='ident'>WebSocketStream</span><span class='op'>&gt;</span>) {

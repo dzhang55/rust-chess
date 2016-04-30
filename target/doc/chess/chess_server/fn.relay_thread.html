@@ -46,15 +46,20 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-269' class='srclink' href='../../src/chess/src/chess_server.rs.html#108-152' title='goto source code'>[src]</a></span></h1>
-<pre class='rust fn'>fn relay_thread(mutex_board: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>&gt;&gt;, clients: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/collections/hash/map/struct.HashMap.html' title='std::collections::hash::map::HashMap'>HashMap</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, Sender&lt;WebSocketStream&gt;&gt;&gt;&gt;, mpsc_receiver: <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/struct.Receiver.html' title='std::sync::mpsc::Receiver'>Receiver</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;)</pre><div class='docblock'><p>The relay thread handles all <code>Action</code>s received on its MPSC channel.
-If it receives an &#39;Action::Select&#39;, it will calculate the potential_moves
-that can be made by that cell, and then relay an &#39;Action::Moves&#39; to the
-sender only. 
-If it receives an &#39;Action::Move&#39;, it will adjust the board state, check for
-check and checkmate, switch turns, and then send an &#39;Action::Board&#39; with all
-the state to all clients.
-If it receives any other &#39;Action&#39;, it will relay the &#39;Action&#39; verbatim to all clients.</p>
+        </span><a id='src-269' class='srclink' href='../../src/chess/src/chess_server.rs.html#111-155' title='goto source code'>[src]</a></span></h1>
+<pre class='rust fn'>fn relay_thread(mutex_board: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>&gt;&gt;, clients: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/collections/hash/map/struct.HashMap.html' title='std::collections::hash::map::HashMap'>HashMap</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, Sender&lt;WebSocketStream&gt;&gt;&gt;&gt;, mpsc_receiver: <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/struct.Receiver.html' title='std::sync::mpsc::Receiver'>Receiver</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;)</pre><div class='docblock'><p>The relay thread handles all <code>Action</code>s received on its MPSC channel. It contains an <code>Arc&lt;Mutex&lt;Board&gt;&gt;</code>
+in order to both access board state and modify it if necessary. Since the client threads also require
+references to the board state, this must be locked in a Mutex.</p>
+
+<ul>
+<li>If it receives an <code>Action::Select</code>, it will calculate the potential_moves
+that can be made by that cell, and then relay an <code>Action::Moves</code> to the
+sender only. </li>
+<li>If it receives an <code>Action::Move</code>, it will adjust the board state, check for
+check and checkmate, switch turns, and then send an <code>Action::Board</code> with all
+the state to all clients.</li>
+<li>If it receives any other <code>Action</code>, it will relay the <code>Action</code> verbatim to all clients.</li>
+</ul>
 </div></section>
     <section id='search' class="content hidden"></section>
 

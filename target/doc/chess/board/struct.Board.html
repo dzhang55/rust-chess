@@ -46,11 +46,13 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-370' class='srclink' href='../../src/chess/src/board.rs.html#15-18' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-370' class='srclink' href='../../src/chess/src/board.rs.html#20-23' title='goto source code'>[src]</a></span></h1>
 <pre class='rust struct'>pub struct Board {
     color: <a class='enum' href='../../chess/board/enum.Color.html' title='chess::board::Color'>Color</a>,
     pub board: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html' title='collections::vec::Vec'>Vec</a>&lt;<a class='enum' href='https://doc.rust-lang.org/nightly/core/option/enum.Option.html' title='core::option::Option'>Option</a>&lt;<a class='struct' href='../../chess/board/struct.Piece.html' title='chess::board::Piece'>Piece</a>&gt;&gt;&gt;,
-}</pre><div class='docblock'><p>Represents the board state.</p>
+}</pre><div class='docblock'><p>Represents the board state.
+color represents the turn i.e. white indicates it is white&#39;s turn.
+The board is represented by an 8x8 matrix of <code>Option&lt;Piece&gt;</code>.</p>
 </div><h2 class='fields'>Fields</h2>
 <table><tr class='stab '>
                                   <td id='structfield.color'><code>color</code></td><td></td></tr><tr class='stab '>

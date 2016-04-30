@@ -428,9 +428,17 @@
 <span id="385">385</span>
 <span id="386">386</span>
 <span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! A module for the game logic of Chess. Stores the Board object and contains</span>
-<span class='doccomment'>//! methods for finding potential moves, check/checkmate, etc.</span>
+<span class='doccomment'>//! methods for finding potential moves, check/checkmate, etc. It utilizes Cell</span>
+<span class='doccomment'>//! objects in order to index into the board, which is a Vec x Vec of Piece</span>
+<span class='doccomment'>//! options. The Piece object contains an enum of PieceType, which is used to</span>
+<span class='doccomment'>//! determine the game behavior for each piece.</span>
 
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Clone</span>)]</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcDecodable</span>, <span class='ident'>RustcEncodable</span>)]</span>
@@ -443,6 +451,8 @@
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Clone</span>)]</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcDecodable</span>, <span class='ident'>RustcEncodable</span>)]</span>
 <span class='doccomment'>/// Represents the board state.</span>
+<span class='doccomment'>/// color represents the turn i.e. white indicates it is white&#39;s turn.</span>
+<span class='doccomment'>/// The board is represented by an 8x8 matrix of `Option&lt;Piece&gt;`.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Board</span> {
     <span class='ident'>color</span>: <span class='ident'>Color</span>,
     <span class='kw'>pub</span> <span class='ident'>board</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Piece</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>,
@@ -471,6 +481,7 @@
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>Clone</span>)]</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcDecodable</span>, <span class='ident'>RustcEncodable</span>)]</span>
 <span class='doccomment'>/// Represents a single chess piece.</span>
+<span class='doccomment'>/// Stores the type of the piece, color, as well as the cell it resides in.</span>
 <span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Piece</span> {
     <span class='ident'>piece_type</span>: <span class='ident'>PieceType</span>,
     <span class='ident'>color</span>: <span class='ident'>Color</span>,
@@ -487,7 +498,6 @@
 }
 
 <span class='kw'>impl</span> <span class='ident'>Board</span> {
-    
     <span class='doccomment'>/// Helper function to put the four symmetrical pieces on the board.</span>
     <span class='kw'>fn</span> <span class='ident'>symmetrical_pieces</span>(<span class='ident'>black_i</span>: <span class='ident'>i32</span>, <span class='ident'>j</span>: <span class='ident'>i32</span>, <span class='ident'>board</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>Piece</span><span class='op'>&gt;&gt;</span><span class='op'>&gt;</span>, <span class='ident'>piece_type</span>: <span class='ident'>PieceType</span>) {
         <span class='ident'>board</span>[<span class='ident'>black_i</span> <span class='kw'>as</span> <span class='ident'>usize</span>][<span class='ident'>j</span> <span class='kw'>as</span> <span class='ident'>usize</span>] <span class='op'>=</span> <span class='prelude-val'>Some</span>(<span class='ident'>Piece</span>{

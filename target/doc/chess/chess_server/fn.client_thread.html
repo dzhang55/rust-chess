@@ -46,9 +46,10 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-303' class='srclink' href='../../src/chess/src/chess_server.rs.html#172-250' title='goto source code'>[src]</a></span></h1>
-<pre class='rust fn'>fn client_thread(mutex_board: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>&gt;&gt;, black_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, white_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, ip: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, mpsc_sender: <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/struct.Sender.html' title='std::sync::mpsc::Sender'>Sender</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;, client_receiver: Receiver&lt;WebSocketStream&gt;)</pre><div class='docblock'><p>Each client thread waits for input (or disconnects) from its respective clients
-and relays the appropriate messages via the relay MPSC channel.</p>
+        </span><a id='src-303' class='srclink' href='../../src/chess/src/chess_server.rs.html#176-254' title='goto source code'>[src]</a></span></h1>
+<pre class='rust fn'>fn client_thread(mutex_board: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='../../chess/board/struct.Board.html' title='chess::board::Board'>Board</a>&gt;&gt;, black_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, white_ip: <a class='struct' href='https://doc.rust-lang.org/nightly/alloc/arc/struct.Arc.html' title='alloc::arc::Arc'>Arc</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mutex/struct.Mutex.html' title='std::sync::mutex::Mutex'>Mutex</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;&gt;, ip: <a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>, mpsc_sender: <a class='struct' href='https://doc.rust-lang.org/nightly/std/sync/mpsc/struct.Sender.html' title='std::sync::mpsc::Sender'>Sender</a>&lt;<a class='struct' href='https://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>&gt;, client_receiver: Receiver&lt;WebSocketStream&gt;)</pre><div class='docblock'><p>Each client thread waits for input (or disconnects) from its respective clients, checks
+if the command is a valid given the game state, and if so, relays the appropriate messages
+via the relay MPSC channel.</p>
 
 <p>The messages received-from and sent-to the client should be JSON objects with the same
 form as rustc_serialize&#39;s serialization of the <code>Action</code> type.</p>
@@ -56,12 +57,12 @@ form as rustc_serialize&#39;s serialization of the <code>Action</code> type.</p>
 <ul>
 <li><p>If the client connects, a <code>Action::Connect</code> will be relayed with their IP address.</p></li>
 <li><p>If the client disconnects, a <code>Action::Disconnect</code> will be relayed with their IP address.</p></li>
-<li><p>If the client sends a &#39;Action::Msg&#39;, the message will be relayed and the user will be adjusted
+<li><p>If the client sends a <code>Action::Msg</code>, the message will be relayed and the user will be adjusted
 to Black, White, or Spectator accordingly.</p></li>
-<li><p>If the client sends a &#39;Action::Select&#39;, if it is not their turn then this message will be discarded.
-Otherwise, the &#39;Action::Select&#39; will be relayed with the selected cell and the client&#39;s IP address.</p></li>
-<li><p>If the client sends a &#39;Action::Move&#39;, if it is not their turn then this message will be discarded.
-Otherwise, the &#39;Action::Move&#39; will be relayed with the from cell and to cell.</p></li>
+<li><p>If the client sends a <code>Action::Select</code>, if it is not their turn then this message will be discarded.
+Otherwise, the <code>Action::Select</code> will be relayed with the selected cell and the client&#39;s IP address.</p></li>
+<li><p>If the client sends a <code>Action::Move</code>, if it is not their turn then this message will be discarded.
+Otherwise, the <code>Action::Move</code> will be relayed with the from cell and to cell.</p></li>
 </ul>
 </div></section>
     <section id='search' class="content hidden"></section>

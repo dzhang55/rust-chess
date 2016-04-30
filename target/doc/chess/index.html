@@ -55,7 +55,10 @@
                                title='chess::board'>board</a></td>
                         <td class='docblock short'>
                              <p>A module for the game logic of Chess. Stores the Board object and contains
-methods for finding potential moves, check/checkmate, etc.</p>
+methods for finding potential moves, check/checkmate, etc. It utilizes Cell
+objects in order to index into the board, which is a Vec x Vec of Piece
+options. The Piece object contains an enum of PieceType, which is used to
+determine the game behavior for each piece.</p>
                         </td>
                     </tr>
                 

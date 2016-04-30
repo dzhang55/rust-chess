@@ -97,14 +97,17 @@ fn listen() {
     }
 }
 
-/// The relay thread handles all `Action`s received on its MPSC channel.
-/// If it receives an `Action::Select`, it will calculate the potential_moves
+/// The relay thread handles all `Action`s received on its MPSC channel. It contains an `Arc<Mutex<Board>>`
+/// in order to both access board state and modify it if necessary. Since the client threads also require
+/// references to the board state, this must be locked in a Mutex.
+///
+/// * If it receives an `Action::Select`, it will calculate the potential_moves
 /// that can be made by that cell, and then relay an `Action::Moves` to the
 /// sender only. 
-/// If it receives an 'Action::Move', it will adjust the board state, check for
+/// * If it receives an `Action::Move`, it will adjust the board state, check for
 /// check and checkmate, switch turns, and then send an `Action::Board` with all
 /// the state to all clients.
-/// If it receives any other `Action`, it will relay the `Action` verbatim to all clients.
+/// * If it receives any other `Action`, it will relay the `Action` verbatim to all clients.
 fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<String, sender::Sender<WebSocketStream>>>>,
                 mpsc_receiver: mpsc::Receiver<String>) {
     for action_string in mpsc_receiver {
@@ -151,8 +154,9 @@ fn relay_thread(mutex_board: Arc<Mutex<Board>>, clients: Arc<Mutex<HashMap<Strin
     }
 }
 
-/// Each client thread waits for input (or disconnects) from its respective clients
-/// and relays the appropriate messages via the relay MPSC channel.
+/// Each client thread waits for input (or disconnects) from its respective clients, checks
+/// if the command is a valid given the game state, and if so, relays the appropriate messages
+/// via the relay MPSC channel.
 ///
 /// The messages received-from and sent-to the client should be JSON objects with the same
 /// form as rustc_serialize's serialization of the `Action` type.
